@@ -749,7 +749,10 @@ function renderPlan(summary, workouts, byWeek) {
 
   // Guess goal from first workout name or use fallback
   document.getElementById('plan-goal-title').textContent = 'Running';
-  document.getElementById('plan-meta').textContent = `${summary.weeks} week plan &middot; Starting next Monday`;
+  const startDate = workouts?.[0]?.scheduled_date
+    ? new Date(workouts[0].scheduled_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'next Monday';
+  document.getElementById('plan-meta').innerHTML = `${summary.weeks} week plan &middot; Starting ${startDate}`;
 
   document.getElementById('sum-weeks').innerHTML = `${summary.weeks}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">wks</em>`;
   document.getElementById('sum-runs').innerHTML = `${summary.totalRuns}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">runs</em>`;
