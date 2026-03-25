@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correr — Your AI Running Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d0d0d;--paper:#f5f2ec;--accent:#e8390e;--accent2:#2a5cff;--muted:#8a8680;--card:#ffffff;--border:#e0dbd3;--green:#1a7a4a;--green-light:#e8f5ee}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.4}
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2.5rem;border-bottom:1px solid var(--border);background:var(--paper);position:sticky;top:0;z-index:100}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;color:var(--ink)}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:2rem;align-items:center}
+.nav-links a{font-size:.85rem;font-weight:500;letter-spacing:.5px;color:var(--muted);text-decoration:none;text-transform:uppercase;transition:color .2s}
+.nav-links a:hover{color:var(--ink)}
+.btn-nav{background:var(--ink)!important;color:var(--paper)!important;padding:.5rem 1.2rem;border-radius:2px}
+.btn-nav:hover{background:var(--accent)!important;color:#fff!important}
+/* Connection status badges in nav */
+.nav-status{display:flex;gap:.5rem;align-items:center}
+.status-chip{display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;border-radius:50px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--border);color:var(--muted)}
+.status-chip.connected{border-color:var(--green);color:var(--green);background:var(--green-light)}
+.status-chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+#hero{display:grid;grid-template-columns:1fr 1fr;min-height:88vh;position:relative;overflow:hidden}
+.hero-left{padding:5rem 3rem 4rem 4rem;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1.5rem}
+.hero-tag::before{content:'';display:inline-block;width:24px;height:2px;background:var(--accent)}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,7vw,7.5rem);line-height:.95;letter-spacing:1px;margin-bottom:1.5rem}
+h1 em{color:var(--accent);font-style:normal}
+.hero-sub{font-size:1.1rem;line-height:1.7;color:#444;max-width:42ch;margin-bottom:2.5rem}
+.hero-cta{display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.btn-primary{background:var(--accent);color:#fff;padding:.9rem 2rem;font-size:.95rem;font-weight:500;border:none;border-radius:2px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:transform .15s,box-shadow .15s;box-shadow:4px 4px 0 var(--ink)}
+.btn-primary:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn-secondary{background:transparent;color:var(--ink);padding:.9rem 2rem;font-size:.95rem;font-weight:500;border:2px solid var(--ink);border-radius:2px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:background .15s,color .15s}
+.btn-secondary:hover{background:var(--ink);color:var(--paper)}
+.hero-right{background:var(--ink);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.track-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.08);animation:spin linear infinite}
+.ring:nth-child(1){width:200px;height:200px;animation-duration:20s}
+.ring:nth-child(2){width:340px;height:340px;animation-duration:32s;animation-direction:reverse;border-color:rgba(232,57,14,.12)}
+.ring:nth-child(3){width:480px;height:480px;animation-duration:48s}
+.ring:nth-child(4){width:620px;height:620px;animation-duration:60s;animation-direction:reverse}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.hero-stats{position:relative;z-index:3;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);border-radius:4px;overflow:hidden}
+.stat-card{background:rgba(255,255,255,.04);padding:1.5rem;display:flex;flex-direction:column;gap:.3rem;transition:background .2s}
+.stat-card:hover{background:rgba(255,255,255,.08)}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#fff;letter-spacing:1px}
+.stat-num span{color:var(--accent)}
+.stat-label{font-size:.75rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
+.pulse-dot{display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:50%;margin-right:.4rem;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+#survey-section{max-width:780px;margin:0 auto;padding:6rem 2rem;display:none}
+.section-header{text-align:center;margin-bottom:3rem}
+.section-kicker{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:.8rem}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1;margin-bottom:1rem}
+.section-sub{color:var(--muted);font-size:1rem;line-height:1.6}
+.survey-progress{margin-bottom:2.5rem}
+.progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.progress-label{font-size:.8rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.progress-count{font-family:'DM Mono',monospace;font-size:.8rem;color:var(--muted)}
+.progress-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease;width:0%}
+.question-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2.5rem;margin-bottom:1.5rem;display:none;animation:slideUp .3s ease}
+.question-card.active{display:block}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.q-number{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:.8rem;display:block}
+.q-text{font-size:1.3rem;font-weight:500;line-height:1.4;margin-bottom:.5rem}
+.q-hint{font-size:.85rem;color:var(--muted);margin-bottom:1.8rem}
+.options{display:flex;flex-direction:column;gap:.7rem}
+.option-btn{display:flex;align-items:center;gap:1rem;padding:1rem 1.2rem;border:1.5px solid var(--border);border-radius:3px;background:transparent;cursor:pointer;text-align:left;transition:all .15s;font-family:'DM Sans',sans-serif;font-size:.95rem}
+.option-btn:hover{border-color:var(--ink);background:rgba(0,0,0,.02)}
+.option-btn.selected{border-color:var(--accent);background:rgba(232,57,14,.05);color:var(--accent)}
+.opt-icon{font-size:1.3rem;width:2rem;text-align:center;flex-shrink:0}
+.opt-label{font-weight:500}
+.opt-desc{font-size:.8rem;color:var(--muted);display:block;font-weight:400}
+.option-btn.selected .opt-desc{color:inherit;opacity:.7}
+.slider-wrap{padding:.5rem 0}
+input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px rgba(232,57,14,.15)}
+.slider-labels{display:flex;justify-content:space-between;margin-top:.8rem;font-size:.75rem;color:var(--muted)}
+.slider-value{text-align:center;margin-bottom:1rem;font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent)}
+.q-nav{display:flex;justify-content:space-between;align-items:center;margin-top:2rem}
+.btn-back{background:transparent;border:1.5px solid var(--border);color:var(--muted);padding:.7rem 1.5rem;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;transition:all .15s}
+.btn-back:hover{border-color:var(--ink);color:var(--ink)}
+.btn-next{background:var(--ink);color:var(--paper);padding:.7rem 1.8rem;border:none;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px;transition:background .15s}
+.btn-next:hover{background:var(--accent)}
+.btn-next:disabled{opacity:.4;cursor:not-allowed}
+#plan-section{max-width:1000px;margin:0 auto;padding:6rem 2rem;display:none}
+.plan-header{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:start;margin-bottom:3rem;padding-bottom:2rem;border-bottom:2px solid var(--ink)}
+.plan-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1}
+.plan-title span{color:var(--accent)}
+.plan-meta{font-size:.9rem;color:var(--muted);margin-top:.5rem}
+.plan-badges{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .8rem;border-radius:2px;font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.badge-accent{background:rgba(232,57,14,.12);color:var(--accent)}
+.badge-blue{background:rgba(42,92,255,.1);color:var(--accent2)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-ink{background:rgba(0,0,0,.06);color:var(--ink)}
+.plan-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:2.5rem}
+.summary-item{background:var(--card);padding:1.5rem;text-align:center}
+.summary-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--ink);letter-spacing:1px}
+.summary-num em{color:var(--accent);font-style:normal;font-size:1.2rem}
+.summary-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:.3rem}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:2.5rem}
+.day-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1rem .8rem;text-align:center;transition:transform .15s,box-shadow .15s}
+.day-card.active-day{border-color:var(--accent)}
+.day-card.rest-day{opacity:.5}
+.day-card:not(.rest-day):hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.day-name{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
+.day-icon{font-size:1.4rem;margin-bottom:.4rem}
+.day-type{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
+.day-km{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--accent);margin-top:.3rem}
+.workouts-section{margin-bottom:2.5rem}
+.workouts-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;margin-bottom:1rem;display:flex;align-items:center;gap:.8rem}
+.workouts-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.workout-row{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
+.workout-row:hover{background:rgba(0,0,0,.02)}
+.workout-row.completed{opacity:.6}
+.workout-row.completed .workout-name::after{content:' ✓';color:var(--green)}
+.workout-week{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;width:3rem;text-align:center}
+.workout-name{font-weight:500;font-size:.95rem}
+.workout-sub{font-size:.8rem;color:var(--muted)}
+.workout-dist{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--ink)}
+.workout-type{padding:.25rem .6rem;border-radius:2px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+.type-easy{background:var(--green-light);color:var(--green)}
+.type-tempo{background:rgba(232,57,14,.1);color:var(--accent)}
+.type-intervals{background:rgba(42,92,255,.1);color:var(--accent2)}
+.type-long{background:rgba(0,0,0,.06);color:var(--ink)}
+/* Integration cards */
+.integration-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2.5rem}
+.integration-card{border:2px solid var(--border);border-radius:4px;padding:2rem;display:flex;flex-direction:column;gap:1rem;transition:border-color .2s}
+.integration-card.connected-card{border-color:var(--green);background:var(--green-light)}
+.integration-card-header{display:flex;align-items:center;gap:1rem}
+.integration-logo{font-size:2rem}
+.integration-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.5px}
+.integration-sub{font-size:.85rem;color:var(--muted);line-height:1.5}
+.integration-card.connected-card .integration-sub{color:var(--green)}
+.btn-connect-card{background:var(--ink);color:#fff;padding:.7rem 1.2rem;border:none;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;transition:background .15s;align-self:flex-start}
+.btn-connect-card:hover{background:var(--accent)}
+.btn-connect-card.connected{background:var(--green)}
+.btn-connect-card.connected:hover{background:#155a38}
+/* Progress section */
+#progress-section{max-width:1000px;margin:0 auto;padding:4rem 2rem 6rem;display:none}
+.progress-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem}
+.progress-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem}
+.p-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;margin-bottom:1.2rem;letter-spacing:.5px}
+.bar-chart{display:flex;align-items:flex-end;gap:.5rem;height:120px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.bar{width:100%;border-radius:2px 2px 0 0;background:var(--border);position:relative;min-height:4px}
+.bar.actual{background:var(--accent)}
+.bar.planned{background:repeating-linear-gradient(-45deg,var(--border),var(--border) 2px,transparent 2px,transparent 6px)}
+.bar-lbl{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)}
+.run-list{display:flex;flex-direction:column;gap:.7rem}
+.run-item{display:flex;align-items:center;gap:.8rem;padding:.8rem;background:var(--paper);border-radius:3px}
+.run-emoji{font-size:1.2rem}
+.run-name{font-size:.9rem;font-weight:500}
+.run-meta{font-size:.75rem;color:var(--muted)}
+.run-stat{margin-left:auto;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--ink)}
+/* Generating */
+#generating{text-align:center;padding:5rem 2rem;display:none;max-width:500px;margin:0 auto}
+.gen-spinner{width:60px;height:60px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;margin:0 auto 2rem}
+.gen-title{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;margin-bottom:.5rem}
+.gen-sub{color:var(--muted)}
+.gen-steps{margin-top:2rem;text-align:left;display:flex;flex-direction:column;gap:.5rem}
+.gen-step{display:flex;align-items:center;gap:.8rem;font-size:.9rem;color:var(--muted);padding:.6rem 1rem;border-radius:3px;transition:all .3s}
+.gen-step.done{color:var(--green);background:var(--green-light)}
+.gen-step.active{color:var(--ink);background:rgba(0,0,0,.04)}
+/* Toast notification */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:.8rem 1.5rem;border-radius:3px;font-size:.9rem;font-weight:500;transition:transform .3s;z-index:9000}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--accent)}
+/* How it works */
+#how-it-works{padding:6rem 2rem;border-top:1px solid var(--border)}
+.how-grid{max-width:960px;margin:3rem auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
+.how-card{padding:2rem}
+.how-num{font-family:'Bebas Neue',sans-serif;font-size:4rem;color:var(--border);line-height:1;margin-bottom:.5rem;display:block}
+.how-icon{font-size:1.8rem;margin-bottom:.8rem;display:block}
+.how-title{font-weight:600;font-size:1rem;margin-bottom:.5rem}
+.how-desc{font-size:.9rem;color:var(--muted);line-height:1.6}
+footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem;display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:end}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:#fff;letter-spacing:2px;display:block;margin-bottom:.5rem}
+.footer-logo span{color:var(--accent)}
+.footer-tagline{font-size:.85rem}
+.footer-links{display:flex;gap:1.5rem}
+.footer-links a{font-size:.8rem;color:rgba(255,255,255,.5);text-decoration:none;text-transform:uppercase;letter-spacing:.5px;transition:color .15s}
+.footer-links a:hover{color:#fff}
+.footer-copy{grid-column:1/-1;padding-top:1.5rem;margin-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);font-size:.75rem;text-align:center}
+@media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}}
+@media(max-width:600px){nav{padding:1rem 1.5rem}.nav-links{display:none}.hero-left{padding:3rem 1.5rem}.week-grid{grid-template-columns:repeat(3,1fr)}footer{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Correr<span>.</span></div>
+  <div class="nav-links">
+    <a href="#">Features</a><a href="#">Plans</a><a href="#">Devices</a>
+  </div>
+  <div class="nav-status">
+    <div class="status-chip" id="strava-status-chip">
+      <span class="dot"></span> Strava
+    </div>
+    <div class="status-chip" id="garmin-status-chip">
+      <span class="dot"></span> Garmin
+    </div>
+    <a href="#" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="hero-left">
+    <span class="hero-tag">AI-Powered Training</span>
+    <h1>Run<br><em>Smarter.</em><br>Go Further.</h1>
+    <p class="hero-sub">Correr builds your personalised running plan in minutes — tailored to your goals, fitness level, and schedule. Syncs with Garmin and Strava.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="startSurvey()">Build My Plan</button>
+      <button class="btn-secondary" onclick="showProgress()">View Progress</button>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="track-rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+    <div style="position:relative;z-index:3;padding:3rem;width:100%">
+      <div class="hero-stats">
+        <div class="stat-card"><div class="stat-num">12<span>k</span></div><div class="stat-label"><span class="pulse-dot"></span>Active Runners</div></div>
+        <div class="stat-card"><div class="stat-num">94<span>%</span></div><div class="stat-label">Hit Their Goal</div></div>
+        <div class="stat-card"><div class="stat-num">8<span>wk</span></div><div class="stat-label">Avg Plan Length</div></div>
+        <div class="stat-card"><div class="stat-num">4<span>.8</span></div><div class="stat-label">&#11088; User Rating</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div style="max-width:960px;margin:0 auto;text-align:center">
+    <span class="section-kicker">How it works</span>
+    <div class="section-title" style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1">Three steps to your perfect training plan</div>
+  </div>
+  <div class="how-grid">
+    <div class="how-card"><span class="how-num">01</span><span class="how-icon">&#128203;</span><div class="how-title">Answer 6 Quick Questions</div><div class="how-desc">Tell us about your current fitness, running history, weekly availability, and race goal. Takes under 3 minutes.</div></div>
+    <div class="how-card"><span class="how-num">02</span><span class="how-icon">&#129302;</span><div class="how-title">We Build Your Plan</div><div class="how-desc">Correr generates a structured week-by-week programme — easy runs, tempo sessions, long runs, and recovery days.</div></div>
+    <div class="how-card"><span class="how-num">03</span><span class="how-icon">&#8987;</span><div class="how-title">Sync to Garmin &amp; Strava</div><div class="how-desc">Push structured workouts to your Garmin Training Calendar. Completed runs pull back automatically via Strava.</div></div>
+  </div>
+</section>
+
+<!-- SURVEY -->
+<section id="survey-section">
+  <div class="section-header">
+    <span class="section-kicker">Your personalised plan</span>
+    <div class="section-title">Let's Build Your Plan</div>
+    <p class="section-sub">Answer 6 quick questions — we'll generate a structured programme and sync it to your devices.</p>
+  </div>
+  <div class="survey-progress">
+    <div class="progress-meta"><span class="progress-label">Progress</span><span class="progress-count" id="progress-count">1 of 6</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <div class="question-card active" id="q1">
+    <span class="q-number">Question 01 / 06</span>
+    <div class="q-text">What is your primary running goal?</div>
+    <div class="q-hint">This shapes everything — distance targets, pace work, and build phases.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="5k"><span class="opt-icon">&#127939;</span><span><span class="opt-label">Run a 5K</span><span class="opt-desc">Complete or improve your 5K time</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="10k"><span class="opt-icon">&#127919;</span><span><span class="opt-label">Run a 10K</span><span class="opt-desc">Build towards your first or faster 10K</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="half"><span class="opt-icon">&#127885;</span><span><span class="opt-label">Half Marathon</span><span class="opt-desc">13.1 miles — a serious challenge</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="marathon"><span class="opt-icon">&#127894;</span><span><span class="opt-label">Full Marathon</span><span class="opt-desc">The ultimate 26.2 mile goal</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="general"><span class="opt-icon">&#128170;</span><span><span class="opt-label">General Fitness</span><span class="opt-desc">Get fitter, lose weight, feel better</span></span></button>
+    </div>
+    <div class="q-nav"><span></span><button class="btn-next" id="next-q1" disabled onclick="nextQuestion(1)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q2">
+    <span class="q-number">Question 02 / 06</span>
+    <div class="q-text">How would you describe your current running experience?</div>
+    <div class="q-hint">Be honest — the right intensity now leads to better results later.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="beginner"><span class="opt-icon">&#127807;</span><span><span class="opt-label">Complete Beginner</span><span class="opt-desc">Just starting out, run/walk intervals</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="casual"><span class="opt-icon">&#128694;</span><span><span class="opt-label">Casual Runner</span><span class="opt-desc">I run occasionally, 1–2x per week</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="regular"><span class="opt-icon">&#127939;</span><span><span class="opt-label">Regular Runner</span><span class="opt-desc">3–4x per week, comfortable with distance</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="experienced"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Experienced Runner</span><span class="opt-desc">5+ per week, I've raced before</span></span></button>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(2)">&larr; Back</button><button class="btn-next" id="next-q2" disabled onclick="nextQuestion(2)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q3">
+    <span class="q-number">Question 03 / 06</span>
+    <div class="q-text">How many days per week can you commit to training?</div>
+    <div class="q-hint">Include easy runs, cross-training, and rest days in your thinking.</div>
+    <div class="slider-wrap">
+      <div class="slider-value" id="days-value">3 days/week</div>
+      <input type="range" min="2" max="6" value="3" id="days-slider" oninput="updateSlider(this,'days-value',' days/week','q3')">
+      <div class="slider-labels"><span>2 days</span><span>3–4 days</span><span>6 days</span></div>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(3)">&larr; Back</button><button class="btn-next" onclick="nextQuestion(3)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q4">
+    <span class="q-number">Question 04 / 06</span>
+    <div class="q-text">How many kilometres do you currently run per week?</div>
+    <div class="q-hint">A rough average is fine — this helps us set a safe starting point.</div>
+    <div class="slider-wrap">
+      <div class="slider-value" id="km-value">20 km/week</div>
+      <input type="range" min="0" max="80" step="5" value="20" id="km-slider" oninput="updateSlider(this,'km-value',' km/week','q4')">
+      <div class="slider-labels"><span>0 km</span><span>40 km</span><span>80+ km</span></div>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(4)">&larr; Back</button><button class="btn-next" onclick="nextQuestion(4)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q5">
+    <span class="q-number">Question 05 / 06</span>
+    <div class="q-text">When is your event or goal deadline?</div>
+    <div class="q-hint">Having a target date keeps training focused and progressive.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(5)">&larr; Back</button><button class="btn-next" id="next-q5" disabled onclick="nextQuestion(5)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q6">
+    <span class="q-number">Question 06 / 06</span>
+    <div class="q-text">What matters most to you in your training?</div>
+    <div class="q-hint">This shapes the character of your programme.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="speed"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Speed &amp; Performance</span><span class="opt-desc">Get faster, smash my PB</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="endurance"><span class="opt-icon">&#127956;</span><span><span class="opt-label">Endurance &amp; Distance</span><span class="opt-desc">Build mileage, finish strong</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="health"><span class="opt-icon">&#10084;&#65039;</span><span><span class="opt-label">Health &amp; Wellbeing</span><span class="opt-desc">Feel great, reduce stress, stay active</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="weight"><span class="opt-icon">&#9878;&#65039;</span><span><span class="opt-label">Weight Management</span><span class="opt-desc">Burn calories, body composition</span></span></button>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(6)">&larr; Back</button><button class="btn-next" id="next-q6" disabled onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
+  </div>
+</section>
+
+<!-- GENERATING -->
+<div id="generating">
+  <div class="gen-spinner"></div>
+  <div class="gen-title">Building Your Plan</div>
+  <div class="gen-sub">Generating your personalised programme...</div>
+  <div class="gen-steps">
+    <div class="gen-step" id="gs1"><span>&#128269;</span> Analysing your profile</div>
+    <div class="gen-step" id="gs2"><span>&#128202;</span> Calculating weekly mileage build</div>
+    <div class="gen-step" id="gs3"><span>&#127939;</span> Scheduling workout types</div>
+    <div class="gen-step" id="gs4"><span>&#128190;</span> Saving to your account</div>
+  </div>
+</div>
+
+<!-- PLAN -->
+<section id="plan-section">
+  <div class="plan-header">
+    <div>
+      <span class="section-kicker">Your Training Programme</span>
+      <div class="plan-title">Your <span id="plan-goal-title">Running</span> Plan</div>
+      <div class="plan-meta" id="plan-meta">Loading plan details...</div>
+      <div class="plan-badges" id="plan-badges"></div>
+    </div>
+    <button class="btn-primary" onclick="showProgress()">View Progress &#8594;</button>
+  </div>
+  <div class="plan-summary">
+    <div class="summary-item"><div class="summary-num" id="sum-weeks">—</div><div class="summary-lbl">Plan Length</div></div>
+    <div class="summary-item"><div class="summary-num" id="sum-runs">—</div><div class="summary-lbl">Total Runs</div></div>
+    <div class="summary-item"><div class="summary-num" id="sum-completed">—</div><div class="summary-lbl">Completed</div></div>
+    <div class="summary-item"><div class="summary-num" id="sum-long">—</div><div class="summary-lbl">Peak Long Run</div></div>
+  </div>
+
+  <!-- Device connections -->
+  <div class="workouts-title" style="margin-bottom:1rem">Connect Your Devices</div>
+  <div class="integration-grid" id="integration-grid">
+    <!-- built by JS -->
+  </div>
+
+  <!-- Week 1 preview -->
+  <div class="workouts-section">
+    <div class="workouts-title">Week 1 — Foundation</div>
+    <div class="week-grid" id="week-grid"></div>
+  </div>
+
+  <!-- Full schedule -->
+  <div class="workouts-section">
+    <div class="workouts-title">Full Schedule</div>
+    <div id="workout-list"></div>
+  </div>
+</section>
+
+<!-- PROGRESS -->
+<section id="progress-section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+    <div>
+      <span class="section-kicker">Your Training</span>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem)">Progress Tracker</div>
+    </div>
+    <button class="btn-secondary" onclick="syncNow()" id="sync-btn">&#8635; Sync Now</button>
+  </div>
+  <div class="progress-grid">
+    <div>
+      <div class="progress-card" style="margin-bottom:1.5rem">
+        <div class="p-card-title">Weekly Mileage (km)</div>
+        <div class="bar-chart" id="bar-chart"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
+          <span class="badge badge-accent">&#9679; Actual</span>
+          <span class="badge badge-ink" style="opacity:.6">&#9679; Planned</span>
+        </div>
+      </div>
+      <div class="progress-card">
+        <div class="p-card-title">Upcoming Workouts</div>
+        <div id="upcoming-workouts"></div>
+      </div>
+    </div>
+    <div>
+      <div class="progress-card">
+        <div class="p-card-title">Recent Runs</div>
+        <div class="run-list" id="recent-runs"><div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Connect Strava to see your runs here.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <span class="footer-logo">Correr<span>.</span></span>
+    <div class="footer-tagline">Your AI running companion &middot; correr.app</div>
+
+  </div>
+  <div class="footer-links">
+    <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Blog</a>
+  </div>
+  <div class="footer-copy">&copy; 2026 Correr &middot; correr.app &middot; Built to make you a better runner.</div>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ??? CONFIG ??????????????????????????????????????????????????????????????????
+// Change this to your backend URL in production
+const API = 'http://localhost:3001';
+
+// ??? STATE ???????????????????????????????????????????????????????????????????
+const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null };
+let userId = localStorage.getItem('correr_user_id');
+let connectionStatus = { strava: false, garmin: false };
+
+// ??? INIT ?????????????????????????????????????????????????????????????????????
+window.addEventListener('load', () => {
+  checkUrlParams();
+  if (userId) loadStatus();
+});
+
+function checkUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('strava_connected')) {
+    showToast('Strava connected! Syncing your recent runs...', 'success');
+    loadStatus();
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (params.get('garmin_connected')) {
+    showToast('Garmin connected! Pushing your plan to your watch...', 'success');
+    loadStatus();
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (params.get('strava_error') || params.get('garmin_error')) {
+    showToast('Connection failed. Please try again.', 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // If returning with a userId (e.g., bookmarked plan), load it
+  if (params.get('userId')) {
+    userId = params.get('userId');
+    localStorage.setItem('correr_user_id', userId);
+    loadPlan();
+  }
+}
+
+async function loadStatus() {
+  if (!userId) return;
+  try {
+    const res = await fetch(`${API}/api/status?userId=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.strava) connectionStatus.strava = data.strava.connected;
+    if (data.garmin) connectionStatus.garmin = data.garmin.connected;
+    updateStatusChips();
+  } catch (e) { /* backend not running in demo */ }
+}
+
+function updateStatusChips() {
+  const stravaChip = document.getElementById('strava-status-chip');
+  const garminChip = document.getElementById('garmin-status-chip');
+  if (connectionStatus.strava) stravaChip.classList.add('connected');
+  else stravaChip.classList.remove('connected');
+  if (connectionStatus.garmin) garminChip.classList.add('connected');
+  else garminChip.classList.remove('connected');
+}
+
+// ??? SURVEY ??????????????????????????????????????????????????????????????????
+function startSurvey() {
+  hide('hero'); hide('how-it-works');
+  show('survey-section');
+  scrollTop();
+  updateProgress(1);
+}
+
+function selectOption(btn, q) {
+  btn.closest('.options').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  answers[q] = btn.dataset.value;
+  const nb = document.getElementById('next-' + q);
+  if (nb) nb.disabled = false;
+}
+
+function nextQuestion(n) {
+  document.getElementById('q' + n).classList.remove('active');
+  document.getElementById('q' + (n + 1)).classList.add('active');
+  updateProgress(n + 1);
+  window.scrollTo({ top: document.getElementById('survey-section').offsetTop - 80, behavior: 'smooth' });
+}
+
+function prevQuestion(n) {
+  document.getElementById('q' + n).classList.remove('active');
+  document.getElementById('q' + (n - 1)).classList.add('active');
+  updateProgress(n - 1);
+}
+
+function updateProgress(n) {
+  document.getElementById('progress-count').textContent = n + ' of 6';
+  document.getElementById('progress-fill').style.width = ((n / 6) * 100) + '%';
+}
+
+function updateSlider(input, labelId, suffix) {
+  document.getElementById(labelId).textContent = input.value + suffix;
+  if (input.id === 'days-slider') answers.q3 = parseInt(input.value);
+  if (input.id === 'km-slider') answers.q4 = parseInt(input.value);
+}
+
+// ??? SUBMIT SURVEY ? POST to backend ?????????????????????????????????????????
+async function submitSurvey() {
+  hide('survey-section');
+  show('generating');
+  scrollTop();
+
+  // Animate steps
+  const steps = ['gs1', 'gs2', 'gs3', 'gs4'];
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i > 0) document.getElementById(steps[i - 1]).classList.remove('active');
+    if (i < steps.length) { document.getElementById(steps[i]).classList.add('active'); i++; }
+    else { clearInterval(iv); steps.forEach(s => document.getElementById(s).classList.add('done')); }
+  }, 600);
+
+  try {
+    const res = await fetch(`${API}/api/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        goal:     answers.q1,
+        level:    answers.q2,
+        days:     answers.q3,
+        km:       answers.q4,
+        timeline: answers.q5,
+        focus:    answers.q6,
+      }),
+    });
+
+    const data = await res.json();
+    userId = data.userId;
+    localStorage.setItem('correr_user_id', String(userId));
+
+    setTimeout(() => {
+      hide('generating');
+      loadPlan();
+    }, 800);
+
+  } catch (err) {
+    // Backend not available -- show demo plan
+    console.warn('Backend unavailable, showing demo plan:', err.message);
+    setTimeout(() => {
+      hide('generating');
+      showDemoPlan();
+    }, 800);
+  }
+}
+
+// ??? LOAD PLAN FROM BACKEND ???????????????????????????????????????????????????
+async function loadPlan() {
+  try {
+    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    renderPlan(data.summary, data.workouts, data.byWeek);
+  } catch (err) {
+    showDemoPlan();
+  }
+}
+
+function renderPlan(summary, workouts, byWeek) {
+  const goalMap = { '5k': '5K Race', '10k': '10K Race', 'half': 'Half Marathon', 'marathon': 'Full Marathon', 'general': 'Fitness' };
+
+  // Guess goal from first workout name or use fallback
+  document.getElementById('plan-goal-title').textContent = 'Running';
+  document.getElementById('plan-meta').textContent = `${summary.weeks} week plan &middot; Starting next Monday`;
+
+  document.getElementById('sum-weeks').innerHTML = `${summary.weeks}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">wks</em>`;
+  document.getElementById('sum-runs').innerHTML = `${summary.totalRuns}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">runs</em>`;
+  document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
+  document.getElementById('sum-long').innerHTML = `${Math.round(summary.peakLongRun)}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">km</em>`;
+
+  renderIntegrationCards(summary.stravaConnected, summary.garminConnected);
+  renderWeekGrid(byWeek ? byWeek['1'] : workouts?.slice(0, 7));
+  renderWorkoutList(workouts);
+
+  show('plan-section');
+  scrollTop();
+}
+
+function renderIntegrationCards(stravaConnected, garminConnected) {
+  const stravaUrl = `${API}/auth/strava/connect?userId=${userId}`;
+  const garminUrl = `${API}/auth/garmin/connect?userId=${userId}`;
+
+  document.getElementById('integration-grid').innerHTML = `
+    <div class="integration-card ${stravaConnected ? 'connected-card' : ''}">
+      <div class="integration-card-header">
+        <div class="integration-logo">&#127939;</div>
+        <div>
+          <div class="integration-name">Strava</div>
+          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Activity Tracking</div>
+        </div>
+      </div>
+      <div class="integration-sub">
+        ${stravaConnected
+          ? '&#10003; Connected -- completed runs sync automatically into your plan.'
+          : 'Link your Strava account to automatically import completed runs and mark workouts as done.'}
+      </div>
+      <a href="${stravaUrl}" class="btn-connect-card ${stravaConnected ? 'connected' : ''}" style="text-decoration:none;display:inline-block;text-align:center">
+        ${stravaConnected ? '&#10003; Connected' : 'Connect Strava'}
+      </a>
+    </div>
+    <div class="integration-card ${garminConnected ? 'connected-card' : ''}">
+      <div class="integration-card-header">
+        <div class="integration-logo">&#8987;</div>
+        <div>
+          <div class="integration-name">Garmin</div>
+          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Workout Sync</div>
+        </div>
+      </div>
+      <div class="integration-sub">
+        ${garminConnected
+          ? '&#10003; Connected -- structured workouts are on your Training Calendar.'
+          : 'Push structured workouts (with pace targets and intervals) directly to your Garmin watch.'}
+      </div>
+      <a href="${garminUrl}" class="btn-connect-card ${garminConnected ? 'connected' : ''}" style="text-decoration:none;display:inline-block;text-align:center">
+        ${garminConnected ? '&#10003; Connected' : 'Connect Garmin'}
+      </a>
+    </div>
+  `;
+}
+
+function renderWeekGrid(workouts) {
+  if (!workouts?.length) return;
+  const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', rest: '&#128564;' };
+
+  // Map workouts by day
+  const byDay = {};
+  for (const w of workouts) byDay[w.day_of_week] = w;
+
+  document.getElementById('week-grid').innerHTML = ALL_DAYS.map(day => {
+    const w = byDay[day];
+    if (!w) return `<div class="day-card rest-day"><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
+    const isLong = w.workout_type === 'long';
+    return `<div class="day-card ${isLong ? 'active-day' : ''}">
+      <div class="day-name">${day}</div>
+      <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
+      <div class="day-type">${w.workout_type}</div>
+      <div class="day-km">${Math.round(w.target_distance_km)}km</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWorkoutList(workouts) {
+  if (!workouts?.length) return;
+  const show8Weeks = workouts.filter(w => w.week_number <= 8);
+  document.getElementById('workout-list').innerHTML = show8Weeks.map(w => `
+    <div class="workout-row ${w.completed ? 'completed' : ''}">
+      <span class="workout-week">W${w.week_number}</span>
+      <div>
+        <div class="workout-name">${w.name}</div>
+        <div class="workout-sub">${w.scheduled_date || ''}</div>
+      </div>
+      <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
+      <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
+    </div>
+  `).join('');
+}
+
+// ??? PROGRESS ?????????????????????????????????????????????????????????????????
+async function showProgress() {
+  hide('hero'); hide('how-it-works'); hide('plan-section');
+  show('progress-section');
+  scrollTop();
+  await loadProgress();
+}
+
+async function loadProgress() {
+  try {
+    const [progressRes, activitiesRes] = await Promise.all([
+      fetch(`${API}/api/progress?userId=${userId}`, { credentials: 'include' }),
+      fetch(`${API}/api/activities?userId=${userId}`, { credentials: 'include' }),
+    ]);
+    const progress = await progressRes.json();
+    const activities = await activitiesRes.json();
+
+    renderBarChart(progress.planned, progress.actual);
+    renderRecentRuns(activities);
+    renderUpcoming();
+  } catch (err) {
+    renderDemoProgress();
+  }
+}
+
+function renderBarChart(planned, actual) {
+  const maxKm = Math.max(...planned.map(p => p.km), ...actual.map(a => a.km), 10);
+  const planByWeek = {};
+  for (const p of (planned || [])) planByWeek[p.week_number] = p.km;
+  const weeks = planned?.slice(0, 8) || [];
+
+  document.getElementById('bar-chart').innerHTML = weeks.map(p => {
+    const actKm = 0; // actual would be matched by date
+    const planH = Math.round((p.km / maxKm) * 110);
+    return `<div class="bar-col">
+      <div class="bar planned" style="height:${planH}px" title="Planned: ${p.km}km"></div>
+      <span class="bar-lbl">W${p.week_number}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentRuns(activities) {
+  if (!activities?.length) {
+    document.getElementById('recent-runs').innerHTML = '<div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">No runs synced yet. Connect Strava to import your recent runs.</div>';
+    return;
+  }
+  const icons = { Run: '&#127939;', VirtualRun: '&#127939;', TrailRun: '&#127956;' };
+  document.getElementById('recent-runs').innerHTML = activities.slice(0, 6).map(a => `
+    <div class="run-item">
+      <span class="run-emoji">${icons[a.sport_type] || '&#127939;'}</span>
+      <div>
+        <div class="run-name">${a.name}</div>
+        <div class="run-meta">${a.distance_km}km &middot; ${a.duration_formatted || ''}</div>
+      </div>
+      <div class="run-stat">${a.pace_formatted || '--'}<span style="font-size:.65rem;color:var(--muted);font-family:'DM Sans'">/km</span></div>
+    </div>
+  `).join('');
+}
+
+async function renderUpcoming() {
+  // Show next 4 upcoming (uncompleted) workouts from plan
+  try {
+    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    const upcoming = (data.workouts || []).filter(w => !w.completed).slice(0, 4);
+    const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;' };
+    document.getElementById('upcoming-workouts').innerHTML = upcoming.length
+      ? '<div class="run-list">' + upcoming.map(w => `
+        <div class="run-item">
+          <span class="run-emoji">${typeIcons[w.workout_type] || '&#127939;'}</span>
+          <div>
+            <div class="run-name">${w.name}</div>
+            <div class="run-meta">${w.scheduled_date}</div>
+          </div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${Math.round(w.target_distance_km)}km</div>
+        </div>`).join('') + '</div>'
+      : '<div style="color:var(--muted);font-size:.9rem">No upcoming workouts found.</div>';
+  } catch (e) {}
+}
+
+async function syncNow() {
+  const btn = document.getElementById('sync-btn');
+  btn.textContent = 'Syncing...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/auth/strava/sync`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    showToast(`Synced ${data.synced} run${data.synced !== 1 ? 's' : ''} from Strava`, 'success');
+    await loadProgress();
+  } catch (e) {
+    showToast('Sync failed -- is Strava connected?', 'error');
+  }
+  btn.textContent = '&#8635; Sync Now';
+  btn.disabled = false;
+}
+
+// ??? DEMO FALLBACK (no backend) ???????????????????????????????????????????????
+function showDemoPlan() {
+  userId = userId || 'demo';
+  const demoSummary = { weeks: 12, totalRuns: 36, completed: 5, peakLongRun: 21, stravaConnected: false, garminConnected: false };
+  const demoWorkouts = generateDemoWorkouts();
+  const byWeek = {};
+  for (const w of demoWorkouts) { if (!byWeek[w.week_number]) byWeek[w.week_number] = []; byWeek[w.week_number].push(w); }
+  renderPlan(demoSummary, demoWorkouts, byWeek);
+}
+
+function generateDemoWorkouts() {
+  const types = ['easy', 'tempo', 'long', 'intervals'];
+  const days  = ['Mon', 'Wed', 'Sat'];
+  const workouts = [];
+  let id = 1;
+  for (let w = 1; w <= 12; w++) {
+    days.forEach((day, i) => {
+      const type = i === 2 ? 'long' : i === 1 && w > 2 ? 'tempo' : 'easy';
+      const km = type === 'long' ? Math.round(8 + (w-1)*1.1) : type === 'tempo' ? Math.round(5 + w*0.4) : Math.round(5 + w*0.3);
+      workouts.push({ id: id++, week_number: w, day_of_week: day, workout_type: type, name: `${type.charAt(0).toUpperCase()+type.slice(1)} Run ${km}km`, target_distance_km: km, scheduled_date: '', completed: w === 1 && i < 2 ? 1 : 0 });
+    });
+  }
+  return workouts;
+}
+
+function renderDemoProgress() {
+  const weeks = Array.from({length:8},(_,i)=>({week_number:i+1,km:20+i*3}));
+  renderBarChart(weeks, []);
+  document.getElementById('recent-runs').innerHTML = `
+    <div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">
+      Connect Strava to see your run history here.<br><br>
+      <a href="#" onclick="if(userId)location.href='${API}/auth/strava/connect?userId='+userId" style="color:var(--accent);font-weight:600">Connect Strava &rarr;</a>
+    </div>`;
+  document.getElementById('upcoming-workouts').innerHTML = `<div style="color:var(--muted);font-size:.9rem">Build your plan to see upcoming workouts.</div>`;
+}
+
+// ??? UI UTILS ?????????????????????????????????????????????????????????????????
+function show(id) { const el=document.getElementById(id); if(el) el.style.display='block'; }
+function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
+function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+
+</body>
+</html>
