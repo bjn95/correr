@@ -11,7 +11,6 @@ const db      = require('./db');
 const { buildOrUpdatePlan } = require('./plan');
 
 const stravaRouter  = require('./routes/strava');
-const garminRouter  = require('./routes/garmin');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -50,7 +49,6 @@ app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOSt
 
 // ── Auth routes ────────────────────────────────────────────────────────────────
 app.use('/auth/strava',  stravaRouter);
-app.use('/auth/garmin',  garminRouter);
 
 // Webhook routes (Strava uses GET for validation, POST for events)
 app.use('/webhook', stravaRouter);
@@ -113,7 +111,6 @@ app.get('/api/plan', (req, res) => {
     totalRuns:   workouts.filter(w => w.workout_type !== 'rest').length,
     completed:   workouts.filter(w => w.completed).length,
     peakLongRun: Math.max(...workouts.filter(w => w.workout_type === 'long').map(w => w.target_distance_km), 0),
-    garminConnected: !!user.garmin_oauth_token,
     stravaConnected: !!user.strava_access_token,
     stravaAthleteName: user.strava_athlete_name,
   };
@@ -205,10 +202,6 @@ app.get('/api/status', (req, res) => {
       athleteName:     user.strava_athlete_name || null,
       profilePic:      user.strava_profile_pic  || null,
       activitiesCount,
-    },
-    garmin: {
-      connected: !!user.garmin_oauth_token,
-      userId:    user.garmin_user_id || null,
     },
   });
 });

@@ -227,9 +227,6 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
         </div>
       </div>
     </div>
-    <div class="status-chip" id="garmin-status-chip">
-      <span class="dot"></span> Garmin
-    </div>
     <a href="#" id="nav-my-plan" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--ink)">My Plan</a>
     <a href="#" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
   </div>
@@ -239,7 +236,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="hero-left">
     <span class="hero-tag">AI-Powered Training</span>
     <h1>Run<br><em>Smarter.</em><br>Go Further.</h1>
-    <p class="hero-sub">Correr builds your personalised running plan in minutes — tailored to your goals, fitness level, and schedule. Syncs with Garmin and Strava.</p>
+    <p class="hero-sub">Correr builds your personalised running plan in minutes — tailored to your goals, fitness level, and schedule. Syncs with Strava.</p>
     <div class="hero-cta">
       <button class="btn-primary" onclick="startSurvey()">Build My Plan</button>
       <button class="btn-secondary" onclick="showProgress()">View Progress</button>
@@ -266,7 +263,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="how-grid">
     <div class="how-card"><span class="how-num">01</span><span class="how-icon">&#128203;</span><div class="how-title">Answer 6 Quick Questions</div><div class="how-desc">Tell us about your current fitness, running history, weekly availability, and race goal. Takes under 3 minutes.</div></div>
     <div class="how-card"><span class="how-num">02</span><span class="how-icon">&#129302;</span><div class="how-title">We Build Your Plan</div><div class="how-desc">Correr generates a structured week-by-week programme — easy runs, tempo sessions, long runs, and recovery days.</div></div>
-    <div class="how-card"><span class="how-num">03</span><span class="how-icon">&#8987;</span><div class="how-title">Sync to Garmin &amp; Strava</div><div class="how-desc">Push structured workouts to your Garmin Training Calendar. Completed runs pull back automatically via Strava.</div></div>
+    <div class="how-card"><span class="how-num">03</span><span class="how-icon">&#127939;</span><div class="how-title">Sync with Strava</div><div class="how-desc">Connect your Strava account and completed runs automatically sync back into your plan, marking workouts as done.</div></div>
   </div>
 </section>
 
@@ -470,7 +467,7 @@ const API = 'https://correr-production.up.railway.app';
 // ??? STATE ???????????????????????????????????????????????????????????????????
 const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null };
 let userId = localStorage.getItem('correr_user_id');
-let connectionStatus = { strava: false, garmin: false };
+let connectionStatus = { strava: false };
 
 // ??? INIT ?????????????????????????????????????????????????????????????????????
 window.addEventListener('load', async () => {
@@ -490,12 +487,7 @@ async function checkUrlParams() {
     await loadStatus();
     loadPlan();
   }
-  if (params.get('garmin_connected')) {
-    showToast('Garmin connected! Pushing your plan to your watch...', 'success');
-    loadStatus();
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-  if (params.get('strava_error') || params.get('garmin_error')) {
+  if (params.get('strava_error')) {
     showToast('Connection failed. Please try again.', 'error');
     window.history.replaceState({}, '', window.location.pathname);
   }
@@ -519,7 +511,6 @@ async function loadStatus() {
       connectionStatus.stravapic = data.strava.profilePic;
       connectionStatus.stravaActivities = data.strava.activitiesCount || 0;
     }
-    if (data.garmin) connectionStatus.garmin = data.garmin.connected;
     updateStatusChips();
   } catch (e) { /* backend not running in demo */ }
 }
@@ -563,7 +554,6 @@ document.addEventListener('click', () => {
 
 function updateStatusChips() {
   const stravaChip = document.getElementById('strava-status-chip');
-  const garminChip = document.getElementById('garmin-status-chip');
   if (connectionStatus.strava) {
     stravaChip.classList.add('connected');
     const pic = connectionStatus.stravapic
@@ -575,8 +565,6 @@ function updateStatusChips() {
     stravaChip.classList.remove('connected');
     stravaChip.innerHTML = '<span class="dot"></span> Strava';
   }
-  if (connectionStatus.garmin) garminChip.classList.add('connected');
-  else garminChip.classList.remove('connected');
 }
 
 // ??? SURVEY ??????????????????????????????????????????????????????????????????
@@ -754,7 +742,7 @@ function renderPlan(summary, workouts, byWeek) {
   document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
   document.getElementById('sum-long').innerHTML = `${Math.round(summary.peakLongRun)}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">km</em>`;
 
-  renderIntegrationCards(summary.stravaConnected, summary.garminConnected, connectionStatus.stravaName, connectionStatus.stravapic);
+  renderIntegrationCards(summary.stravaConnected, connectionStatus.stravaName, connectionStatus.stravapic);
   renderWeekGrid(byWeek ? byWeek['1'] : workouts?.slice(0, 7));
   renderWorkoutList(workouts);
 
@@ -763,9 +751,8 @@ function renderPlan(summary, workouts, byWeek) {
   scrollTop();
 }
 
-function renderIntegrationCards(stravaConnected, garminConnected, stravaName, stravaPic) {
+function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
   const stravaUrl = `${API}/auth/strava/connect?userId=${userId}`;
-  const garminUrl = `${API}/auth/garmin/connect?userId=${userId}`;
 
   document.getElementById('integration-grid').innerHTML = `
     <div class="integration-card ${stravaConnected ? 'connected-card' : ''}">
@@ -780,28 +767,11 @@ function renderIntegrationCards(stravaConnected, garminConnected, stravaName, st
       ${stravaConnected && stravaName ? `<div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">${stravaName}</div>` : ''}
       <div class="integration-sub">
         ${stravaConnected
-          ? '&#10003; Connected -- completed runs sync automatically into your plan.'
+          ? '&#10003; Connected — completed runs sync automatically into your plan.'
           : 'Link your Strava account to automatically import completed runs and mark workouts as done.'}
       </div>
       <a href="${stravaUrl}" class="btn-connect-card ${stravaConnected ? 'connected' : ''}" style="text-decoration:none;display:inline-block;text-align:center">
         ${stravaConnected ? '&#10003; Connected' : 'Connect Strava'}
-      </a>
-    </div>
-    <div class="integration-card ${garminConnected ? 'connected-card' : ''}">
-      <div class="integration-card-header">
-        <div class="integration-logo">&#8987;</div>
-        <div>
-          <div class="integration-name">Garmin</div>
-          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Workout Sync</div>
-        </div>
-      </div>
-      <div class="integration-sub">
-        ${garminConnected
-          ? '&#10003; Connected -- structured workouts are on your Training Calendar.'
-          : 'Push structured workouts (with pace targets and intervals) directly to your Garmin watch.'}
-      </div>
-      <a href="${garminUrl}" class="btn-connect-card ${garminConnected ? 'connected' : ''}" style="text-decoration:none;display:inline-block;text-align:center">
-        ${garminConnected ? '&#10003; Connected' : 'Connect Garmin'}
       </a>
     </div>
   `;
@@ -949,7 +919,7 @@ async function syncNow() {
 // ??? DEMO FALLBACK (no backend) ???????????????????????????????????????????????
 function showDemoPlan() {
   userId = userId || 'demo';
-  const demoSummary = { weeks: 12, totalRuns: 36, completed: 5, peakLongRun: 21, stravaConnected: false, garminConnected: false };
+  const demoSummary = { weeks: 12, totalRuns: 36, completed: 5, peakLongRun: 21, stravaConnected: false };
   const demoWorkouts = generateDemoWorkouts();
   const byWeek = {};
   for (const w of demoWorkouts) { if (!byWeek[w.week_number]) byWeek[w.week_number] = []; byWeek[w.week_number].push(w); }
