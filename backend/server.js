@@ -24,6 +24,7 @@ app.set('trust proxy', 1);
 app.use(cors({
   origin: [
     'https://correr.app',
+    'https://www.correr.app',
     'http://localhost:3000',
     'http://localhost:5500',  // local dev with live-server
   ],
