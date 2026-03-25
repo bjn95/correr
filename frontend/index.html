@@ -451,7 +451,7 @@ window.addEventListener('load', () => {
   if (userId) loadStatus();
 });
 
-function checkUrlParams() {
+async function checkUrlParams() {
   const params = new URLSearchParams(window.location.search);
 
   if (params.get('strava_connected')) {
