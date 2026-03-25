@@ -951,7 +951,7 @@ async function syncNow() {
   } catch (e) {
     showToast('Sync failed -- is Strava connected?', 'error');
   }
-  btn.textContent = '&#8635; Sync Now';
+  btn.innerHTML = '&#8635; Sync Now';
   btn.disabled = false;
 }
 
