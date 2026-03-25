@@ -230,6 +230,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="status-chip" id="garmin-status-chip">
       <span class="dot"></span> Garmin
     </div>
+    <a href="#" id="nav-my-plan" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--ink)">My Plan</a>
     <a href="#" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
   </div>
 </nav>
@@ -382,7 +383,10 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <div class="plan-meta" id="plan-meta">Loading plan details...</div>
       <div class="plan-badges" id="plan-badges"></div>
     </div>
-    <button class="btn-primary" onclick="showProgress()">View Progress &#8594;</button>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="editPlan()" style="font-size:.8rem;padding:.6rem 1.2rem">Edit Plan</button>
+      <button class="btn-primary" onclick="showProgress()">View Progress &#8594;</button>
+    </div>
   </div>
   <div class="plan-summary">
     <div class="summary-item"><div class="summary-num" id="sum-weeks">—</div><div class="summary-lbl">Plan Length</div></div>
@@ -469,9 +473,12 @@ let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false, garmin: false };
 
 // ??? INIT ?????????????????????????????????????????????????????????????????????
-window.addEventListener('load', () => {
-  checkUrlParams();
-  if (userId) loadStatus();
+window.addEventListener('load', async () => {
+  await checkUrlParams();
+  if (userId) {
+    loadStatus();
+    loadPlan();
+  }
 });
 
 async function checkUrlParams() {
@@ -651,6 +658,7 @@ async function submitSurvey() {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
+        userId:   userId || undefined,
         goal:     answers.q1,
         level:    answers.q2,
         days:     answers.q3,
@@ -690,6 +698,50 @@ async function loadPlan() {
   }
 }
 
+function showMyPlan() {
+  hide('survey-section');
+  hide('generating');
+  show('plan-section');
+  scrollTop();
+}
+
+async function editPlan() {
+  try {
+    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    const s = data.survey || {};
+
+    // Pre-fill option buttons
+    const optMap = { q1: s.goal, q2: s.level, q5: s.timeline, q6: s.focus };
+    for (const [q, val] of Object.entries(optMap)) {
+      if (!val) continue;
+      const btn = document.querySelector(`#${q} .option-btn[data-value="${val}"]`);
+      if (btn) selectOption(btn, q);
+    }
+    // Pre-fill sliders
+    if (s.days) {
+      const ds = document.getElementById('days-slider');
+      ds.value = s.days;
+      ds.dispatchEvent(new Event('input'));
+    }
+    if (s.km) {
+      const ks = document.getElementById('km-slider');
+      ks.value = s.km;
+      ks.dispatchEvent(new Event('input'));
+    }
+    // Reset to q1
+    document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('q1').classList.add('active');
+    updateProgress(1);
+
+    hide('plan-section');
+    show('survey-section');
+    scrollTop();
+  } catch (e) {
+    showToast('Could not load plan details', 'error');
+  }
+}
+
 function renderPlan(summary, workouts, byWeek) {
   const goalMap = { '5k': '5K Race', '10k': '10K Race', 'half': 'Half Marathon', 'marathon': 'Full Marathon', 'general': 'Fitness' };
 
@@ -706,6 +758,7 @@ function renderPlan(summary, workouts, byWeek) {
   renderWeekGrid(byWeek ? byWeek['1'] : workouts?.slice(0, 7));
   renderWorkoutList(workouts);
 
+  document.getElementById('nav-my-plan').style.display = 'inline';
   show('plan-section');
   scrollTop();
 }

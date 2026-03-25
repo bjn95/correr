@@ -58,20 +58,30 @@ app.use('/webhook', stravaRouter);
 // ── Plan API ──────────────────────────────────────────────────────────────────
 
 // POST /api/plan — save survey answers + generate plan
-// Body: { goal, level, days, km, timeline, focus }
+// Body: { goal, level, days, km, timeline, focus, userId? }
+// If userId is provided and exists, updates that user's plan instead of creating a new one
 // Returns: { userId, weeks, totalRuns, peakLongRun, startDate }
 app.post('/api/plan', (req, res) => {
   const { goal, level, days, km, timeline, focus } = req.body;
+  const existingId = req.body.userId || req.session.correrUserId;
+  const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
 
-  // Create a new user row for this session
-  const result = db.prepare(`
-    INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(goal, level, days || 3, km || 20, timeline, focus);
+  let userId;
+  if (existing) {
+    db.prepare(`
+      UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_km=?, survey_timeline=?, survey_focus=?
+      WHERE id=?
+    `).run(goal, level, days || 3, km || 20, timeline, focus, existing.id);
+    userId = existing.id;
+  } else {
+    const result = db.prepare(`
+      INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(goal, level, days || 3, km || 20, timeline, focus);
+    userId = result.lastInsertRowid;
+  }
 
-  const userId = result.lastInsertRowid;
   req.session.correrUserId = userId;
-
   const plan = buildOrUpdatePlan(userId, { goal, level, days, km, timeline, focus });
 
   res.json({ userId, ...plan });
@@ -108,7 +118,16 @@ app.get('/api/plan', (req, res) => {
     stravaAthleteName: user.strava_athlete_name,
   };
 
-  res.json({ summary, workouts, byWeek });
+  const survey = {
+    goal:     user.survey_goal,
+    level:    user.survey_level,
+    days:     user.survey_days,
+    km:       user.survey_km,
+    timeline: user.survey_timeline,
+    focus:    user.survey_focus,
+  };
+
+  res.json({ summary, workouts, byWeek, survey });
 });
 
 // GET /api/activities?userId=xxx — activities synced from Strava/Garmin
