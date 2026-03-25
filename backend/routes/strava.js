@@ -30,7 +30,7 @@ router.get('/connect', (req, res) => {
     scope: 'read,activity:read_all',
   });
 
-  res.redirect(`${STRAVA_AUTH}/authorize?${params}`);
+  req.session.save(() => res.redirect(`${STRAVA_AUTH}/authorize?${params}`));
 });
 
 // ── 2. Strava redirects back here with ?code=xxx ──────────────────────────────

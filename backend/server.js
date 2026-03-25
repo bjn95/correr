@@ -16,6 +16,9 @@ const garminRouter  = require('./routes/garmin');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust Railway's reverse proxy so secure cookies work over HTTPS
+app.set('trust proxy', 1);
+
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
 app.use(cors({
