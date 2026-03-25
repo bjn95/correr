@@ -269,7 +269,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <button class="option-btn" onclick="selectOption(this,'q1')" data-value="marathon"><span class="opt-icon">&#127894;</span><span><span class="opt-label">Full Marathon</span><span class="opt-desc">The ultimate 26.2 mile goal</span></span></button>
       <button class="option-btn" onclick="selectOption(this,'q1')" data-value="general"><span class="opt-icon">&#128170;</span><span><span class="opt-label">General Fitness</span><span class="opt-desc">Get fitter, lose weight, feel better</span></span></button>
     </div>
-    <div class="q-nav"><span></span><button class="btn-next" id="next-q1" disabled onclick="nextQuestion(1)">Continue &rarr;</button></div>
+    <div class="q-nav"><button class="btn-back" style="opacity:.5;font-size:.75rem" onclick="fillTestDefaults()">Fill test defaults</button><button class="btn-next" id="next-q1" disabled onclick="nextQuestion(1)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q2">
@@ -508,6 +508,24 @@ function startSurvey() {
   show('survey-section');
   scrollTop();
   updateProgress(1);
+}
+
+function fillTestDefaults() {
+  const defaults = { q1: 'half', q2: 'regular', q5: '12w', q6: 'endurance' };
+  for (const [q, val] of Object.entries(defaults)) {
+    const btn = document.querySelector(`#${q} .option-btn[data-value="${val}"]`);
+    if (btn) selectOption(btn, q);
+  }
+  const daysSlider = document.getElementById('days-slider');
+  daysSlider.value = 4;
+  daysSlider.dispatchEvent(new Event('input'));
+  const kmSlider = document.getElementById('km-slider');
+  kmSlider.value = 30;
+  kmSlider.dispatchEvent(new Event('input'));
+  // Jump to q6 so user just needs to hit submit
+  ['q1','q2','q3','q4','q5'].forEach(q => document.getElementById(q).classList.remove('active'));
+  document.getElementById('q6').classList.add('active');
+  updateProgress(6);
 }
 
 function selectOption(btn, q) {
