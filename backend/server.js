@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({
   origin: [
-    'https://correr.co.uk',
+    'https://correr.app',
     'http://localhost:3000',
     'http://localhost:5500',  // local dev with live-server
   ],
