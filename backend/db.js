@@ -13,6 +13,7 @@ const db = new Database(resolvedPath);
 
 // Enable WAL mode for better concurrent read performance
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
