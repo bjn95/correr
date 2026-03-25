@@ -61,6 +61,25 @@ h1 em{color:var(--accent);font-style:normal}
 .stat-label{font-size:.75rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
 .pulse-dot{display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:50%;margin-right:.4rem;animation:pulse 1.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+#features-section{padding:6rem 2.5rem;background:var(--ink);display:none}
+#features-section .section-kicker{color:var(--accent)}
+#features-section .section-title{color:#fff}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:1100px;margin:3rem auto 0}
+.feature-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2rem;transition:background .2s}
+.feature-card:hover{background:rgba(255,255,255,.08)}
+.feature-icon{font-size:2rem;margin-bottom:1rem}
+.feature-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#fff;letter-spacing:.5px;margin-bottom:.5rem}
+.feature-desc{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.6}
+#devices-section{padding:6rem 2.5rem;background:var(--paper);display:none}
+.devices-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;max-width:1100px;margin:3rem auto 0}
+.device-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1.8rem;text-align:center;position:relative}
+.device-card.supported{border-color:var(--green)}
+.device-logo{font-size:2.5rem;margin-bottom:.75rem}
+.device-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.5px;margin-bottom:.3rem}
+.device-status{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.device-status.live{color:var(--green)}
+.device-status.soon{color:var(--muted)}
+.device-badge{position:absolute;top:.6rem;right:.6rem;background:var(--green);color:#fff;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.2rem .5rem;border-radius:2px}
 #survey-section{max-width:780px;margin:0 auto;padding:6rem 2rem;display:none}
 .section-header{text-align:center;margin-bottom:3rem}
 .section-kicker{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:.8rem}
@@ -205,7 +224,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .footer-links a{font-size:.8rem;color:rgba(255,255,255,.5);text-decoration:none;text-transform:uppercase;letter-spacing:.5px;transition:color .15s}
 .footer-links a:hover{color:#fff}
 .footer-copy{grid-column:1/-1;padding-top:1.5rem;margin-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);font-size:.75rem;text-align:center}
-@media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}}
+@media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:repeat(2,1fr)}.devices-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){nav{padding:1rem 1.5rem}.nav-links{display:none}.hero-left{padding:3rem 1.5rem}.week-grid{grid-template-columns:repeat(3,1fr)}footer{grid-template-columns:1fr}}
 </style>
 </head>
@@ -214,7 +233,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <nav>
   <div class="nav-logo">Correr<span>.</span></div>
   <div class="nav-links">
-    <a href="#">Features</a><a href="#">Plans</a><a href="#">Devices</a>
+    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a>
   </div>
   <div class="nav-status">
     <div style="position:relative">
@@ -271,6 +290,78 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="how-card"><span class="how-num">01</span><span class="how-icon">&#128203;</span><div class="how-title">Answer 6 Quick Questions</div><div class="how-desc">Tell us about your current fitness, running history, weekly availability, and race goal. Takes under 3 minutes.</div></div>
     <div class="how-card"><span class="how-num">02</span><span class="how-icon">&#129302;</span><div class="how-title">We Build Your Plan</div><div class="how-desc">Correr generates a structured week-by-week programme — easy runs, tempo sessions, long runs, and recovery days.</div></div>
     <div class="how-card"><span class="how-num">03</span><span class="how-icon">&#127939;</span><div class="how-title">Sync with Strava</div><div class="how-desc">Connect your Strava account and completed runs automatically sync back into your plan, marking workouts as done.</div></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features-section">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <span class="section-kicker">What you get</span>
+    <div class="section-title">Everything you need to train smarter</div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#129302;</div>
+      <div class="feature-title">AI-Powered Plans</div>
+      <div class="feature-desc">Answer 6 questions and get a fully structured week-by-week training programme tailored to your goal, fitness level, and schedule.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128200;</div>
+      <div class="feature-title">Progressive Overload</div>
+      <div class="feature-desc">Mileage builds automatically each week with built-in cutback weeks every 4th week and a 2-week taper before your race.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#127939;</div>
+      <div class="feature-title">Strava Auto-Sync</div>
+      <div class="feature-desc">Connect Strava and completed runs automatically match to your plan workouts, marking them done without any manual input.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9989;</div>
+      <div class="feature-title">Workout Completion Tracking</div>
+      <div class="feature-desc">See exactly how many sessions you've completed versus planned. Track your consistency across the full programme.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128203;</div>
+      <div class="feature-title">Easy, Tempo & Intervals</div>
+      <div class="feature-desc">Every session has a type, target distance, and target pace — easy runs, tempo efforts, interval sessions, and long runs.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9998;&#65039;</div>
+      <div class="feature-title">Edit Anytime</div>
+      <div class="feature-desc">Goals change. Update your survey answers at any time and Correr instantly regenerates your plan from where you are now.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEVICES -->
+<section id="devices-section">
+  <div style="max-width:1100px;margin:0 auto;text-align:center">
+    <span class="section-kicker">Integrations</span>
+    <div class="section-title">Works with your kit</div>
+    <p class="section-sub" style="max-width:50ch;margin:.75rem auto 0">Correr connects to the platforms you already use. More integrations coming soon.</p>
+  </div>
+  <div class="devices-grid">
+    <div class="device-card supported">
+      <div class="device-badge">Live</div>
+      <div class="device-logo">&#127939;</div>
+      <div class="device-name">Strava</div>
+      <div class="device-status live">Connected</div>
+    </div>
+    <div class="device-card">
+      <div class="device-logo">&#8987;</div>
+      <div class="device-name">Garmin</div>
+      <div class="device-status soon">Coming Soon</div>
+    </div>
+    <div class="device-card">
+      <div class="device-logo">&#127822;</div>
+      <div class="device-name">Apple Watch</div>
+      <div class="device-status soon">Coming Soon</div>
+    </div>
+    <div class="device-card">
+      <div class="device-logo">&#128247;</div>
+      <div class="device-name">Polar</div>
+      <div class="device-status soon">Coming Soon</div>
+    </div>
   </div>
 </section>
 
@@ -995,6 +1086,16 @@ function renderDemoProgress() {
 function show(id) { const el=document.getElementById(id); if(el) el.style.display='block'; }
 function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+function showSection(section) {
+  ['hero','how-it-works','features-section','devices-section','survey-section','plan-section','progress-section','generating'].forEach(id => hide(id));
+  if (section === 'features') { show('features-section'); scrollTop(); }
+  else if (section === 'devices') { show('devices-section'); scrollTop(); }
+  else if (section === 'plans') {
+    if (userId) { show('plan-section'); scrollTop(); }
+    else { show('hero'); show('how-it-works'); startSurvey(); }
+  }
+}
 
 function showToast(msg, type = '') {
   const t = document.getElementById('toast');
