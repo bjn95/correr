@@ -113,6 +113,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .summary-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--ink);letter-spacing:1px}
 .summary-num em{color:var(--accent);font-style:normal;font-size:1.2rem}
 .summary-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:.3rem}
+.week-carousel-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.week-carousel-nav .workouts-title{margin-bottom:0;flex:1}
+.week-carousel-nav .workouts-title::after{display:none}
+.week-nav-btn{background:none;border:1.5px solid var(--border);border-radius:2px;width:36px;height:36px;font-size:1rem;cursor:pointer;color:var(--ink);transition:background .15s,border-color .15s;flex-shrink:0}
+.week-nav-btn:hover:not(:disabled){background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.week-nav-btn:disabled{opacity:.25;cursor:default}
+.week-phase{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-left:.5rem;font-weight:400}
 .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:2.5rem}
 .day-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1rem .8rem;text-align:center;transition:transform .15s,box-shadow .15s}
 .day-card.active-day{border-color:var(--accent)}
@@ -398,9 +405,13 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <!-- built by JS -->
   </div>
 
-  <!-- Week 1 preview -->
+  <!-- Week carousel -->
   <div class="workouts-section">
-    <div class="workouts-title">Week 1 — Foundation</div>
+    <div class="week-carousel-nav">
+      <button class="week-nav-btn" id="week-prev" onclick="changeWeek(-1)">&#8592;</button>
+      <div class="workouts-title" id="week-carousel-title">Week 1 <span class="week-phase" id="week-phase-label"></span></div>
+      <button class="week-nav-btn" id="week-next" onclick="changeWeek(1)">&#8594;</button>
+    </div>
     <div class="week-grid" id="week-grid"></div>
   </div>
 
@@ -468,6 +479,9 @@ const API = 'https://correr-production.up.railway.app';
 const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
+let planByWeek = {};
+let currentWeek = 1;
+let totalPlanWeeks = 1;
 
 // ??? INIT ?????????????????????????????????????????????????????????????????????
 window.addEventListener('load', async () => {
@@ -742,8 +756,12 @@ function renderPlan(summary, workouts, byWeek) {
   document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
   document.getElementById('sum-long').innerHTML = `${Math.round(summary.peakLongRun)}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">km</em>`;
 
+  planByWeek = byWeek || {};
+  totalPlanWeeks = summary.weeks || 1;
+  currentWeek = 1;
+
   renderIntegrationCards(summary.stravaConnected, connectionStatus.stravaName, connectionStatus.stravapic);
-  renderWeekGrid(byWeek ? byWeek['1'] : workouts?.slice(0, 7));
+  renderWeekCarousel();
   renderWorkoutList(workouts);
 
   document.getElementById('nav-my-plan').style.display = 'inline';
@@ -777,26 +795,44 @@ function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
   `;
 }
 
-function renderWeekGrid(workouts) {
-  if (!workouts?.length) return;
+function weekPhaseLabel(week, total) {
+  if (week === 1) return 'Foundation';
+  if (week > total - 2) return 'Taper';
+  if (week % 4 === 0) return 'Recovery';
+  if (week <= Math.floor(total * 0.4)) return 'Base';
+  return 'Build';
+}
+
+function renderWeekCarousel() {
+  const workouts = planByWeek[String(currentWeek)] || planByWeek[currentWeek] || [];
   const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', rest: '&#128564;' };
 
-  // Map workouts by day
+  document.getElementById('week-carousel-title').childNodes[0].textContent = `Week ${currentWeek} `;
+  document.getElementById('week-phase-label').textContent = weekPhaseLabel(currentWeek, totalPlanWeeks);
+  document.getElementById('week-prev').disabled = currentWeek <= 1;
+  document.getElementById('week-next').disabled = currentWeek >= totalPlanWeeks;
+
   const byDay = {};
   for (const w of workouts) byDay[w.day_of_week] = w;
 
   document.getElementById('week-grid').innerHTML = ALL_DAYS.map(day => {
     const w = byDay[day];
     if (!w) return `<div class="day-card rest-day"><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
-    const isLong = w.workout_type === 'long';
-    return `<div class="day-card ${isLong ? 'active-day' : ''}">
+    return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''}">
       <div class="day-name">${day}</div>
       <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
       <div class="day-type">${w.workout_type}</div>
       <div class="day-km">${Math.round(w.target_distance_km)}km</div>
     </div>`;
   }).join('');
+}
+
+function changeWeek(dir) {
+  const next = currentWeek + dir;
+  if (next < 1 || next > totalPlanWeeks) return;
+  currentWeek = next;
+  renderWeekCarousel();
 }
 
 function renderWorkoutList(workouts) {
