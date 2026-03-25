@@ -140,9 +140,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .week-nav-btn:disabled{opacity:.25;cursor:default}
 .week-phase{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-left:.5rem;font-weight:400}
 .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:2.5rem}
-.day-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1rem .8rem;text-align:center;transition:transform .15s,box-shadow .15s}
 .day-card.active-day{border-color:var(--accent)}
-.day-card.rest-day{opacity:.5}
+.day-card.rest-day{opacity:.5;cursor:default}
 .day-card:not(.rest-day):hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
 .day-name{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
 .day-icon{font-size:1.4rem;margin-bottom:.4rem}
@@ -151,10 +150,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .workouts-section{margin-bottom:2.5rem}
 .workouts-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;margin-bottom:1rem;display:flex;align-items:center;gap:.8rem}
 .workouts-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.workout-row{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
+.workout-row{display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
 .workout-row:hover{background:rgba(0,0,0,.02)}
 .workout-row.completed{opacity:.6}
-.workout-row.completed .workout-name::after{content:' ✓';color:var(--green)}
+.workout-row.completed .workout-name{text-decoration:line-through}
+.workout-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted);transition:all .15s;flex-shrink:0}
+.workout-check:hover{border-color:var(--green);color:var(--green)}
+.workout-check.checked{border-color:var(--green);background:var(--green);color:#fff}
+.day-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1rem .8rem;text-align:center;transition:transform .15s,box-shadow .15s;cursor:pointer;position:relative}
+.day-card.day-done{border-color:var(--green);background:var(--green-light)}
+.day-card.day-done .day-type{color:var(--green)}
+.day-check-mark{position:absolute;top:.4rem;right:.4rem;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 .workout-week{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;width:3rem;text-align:center}
 .workout-name{font-weight:500;font-size:.95rem}
 .workout-sub{font-size:.8rem;color:var(--muted)}
@@ -571,6 +577,7 @@ const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
+let planWorkouts = [];
 let currentWeek = 1;
 let totalPlanWeeks = 1;
 
@@ -850,6 +857,7 @@ function renderPlan(summary, workouts, byWeek) {
   document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
   document.getElementById('sum-long').innerHTML = `${Math.round(summary.peakLongRun)}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">km</em>`;
 
+  planWorkouts = workouts || [];
   planByWeek = byWeek || {};
   totalPlanWeeks = summary.weeks || 1;
   currentWeek = 1;
@@ -913,7 +921,8 @@ function renderWeekCarousel() {
   document.getElementById('week-grid').innerHTML = ALL_DAYS.map(day => {
     const w = byDay[day];
     if (!w) return `<div class="day-card rest-day"><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
-    return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''}">
+    return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''} ${w.completed ? 'day-done' : ''}" onclick="toggleWorkout(${w.id})">
+      ${w.completed ? '<div class="day-check-mark">&#10003;</div>' : ''}
       <div class="day-name">${day}</div>
       <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
       <div class="day-type">${w.workout_type}</div>
@@ -941,8 +950,48 @@ function renderWorkoutList(workouts) {
       </div>
       <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
       <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
+      <button class="workout-check ${w.completed ? 'checked' : ''}" onclick="toggleWorkout(${w.id})" title="${w.completed ? 'Mark incomplete' : 'Mark complete'}">${w.completed ? '&#10003;' : ''}</button>
     </div>
   `).join('');
+}
+
+// ??? WORKOUT TOGGLE ??????????????????????????????????????????????????????????
+async function toggleWorkout(id) {
+  if (userId === 'demo') {
+    // Demo mode: just update local state
+    const w = planWorkouts.find(w => w.id === id);
+    if (w) w.completed = w.completed ? 0 : 1;
+  } else {
+    try {
+      const res = await fetch(`${API}/api/workout/${id}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      const w = planWorkouts.find(w => w.id === id);
+      if (w) w.completed = data.completed;
+    } catch (e) {
+      showToast('Could not update workout', 'error');
+      return;
+    }
+  }
+
+  // Rebuild byWeek from updated planWorkouts
+  const newByWeek = {};
+  for (const w of planWorkouts) {
+    if (!newByWeek[w.week_number]) newByWeek[w.week_number] = [];
+    newByWeek[w.week_number].push(w);
+  }
+  planByWeek = newByWeek;
+
+  // Update completed count in summary
+  const completedCount = planWorkouts.filter(w => w.completed).length;
+  document.getElementById('sum-completed').innerHTML = `${completedCount}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
+
+  renderWeekCarousel();
+  renderWorkoutList(planWorkouts);
 }
 
 // ??? PROGRESS ?????????????????????????????????????????????????????????????????

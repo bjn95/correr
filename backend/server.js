@@ -183,6 +183,20 @@ app.get('/api/progress', (req, res) => {
   res.json({ actual, planned });
 });
 
+// POST /api/workout/:id/toggle — mark a workout complete or incomplete
+app.post('/api/workout/:id/toggle', (req, res) => {
+  const workoutId = req.params.id;
+  const userId = req.body.userId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+
+  const workout = db.prepare('SELECT * FROM plan_workouts WHERE id = ? AND user_id = ?').get(workoutId, userId);
+  if (!workout) return res.status(404).json({ error: 'Workout not found' });
+
+  const newCompleted = workout.completed ? 0 : 1;
+  db.prepare('UPDATE plan_workouts SET completed = ? WHERE id = ?').run(newCompleted, workoutId);
+  res.json({ id: Number(workoutId), completed: newCompleted });
+});
+
 // GET /api/status?userId=xxx — connection status for both integrations
 app.get('/api/status', (req, res) => {
   const userId = req.query.userId || req.session.correrUserId;
