@@ -482,7 +482,11 @@ async function loadStatus() {
   try {
     const res = await fetch(`${API}/api/status?userId=${userId}`, { credentials: 'include' });
     const data = await res.json();
-    if (data.strava) connectionStatus.strava = data.strava.connected;
+    if (data.strava) {
+      connectionStatus.strava = data.strava.connected;
+      connectionStatus.stravaName = data.strava.athleteName;
+      connectionStatus.stravapic = data.strava.profilePic;
+    }
     if (data.garmin) connectionStatus.garmin = data.garmin.connected;
     updateStatusChips();
   } catch (e) { /* backend not running in demo */ }
@@ -609,7 +613,7 @@ function renderPlan(summary, workouts, byWeek) {
   document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
   document.getElementById('sum-long').innerHTML = `${Math.round(summary.peakLongRun)}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">km</em>`;
 
-  renderIntegrationCards(summary.stravaConnected, summary.garminConnected);
+  renderIntegrationCards(summary.stravaConnected, summary.garminConnected, connectionStatus.stravaName, connectionStatus.stravapic);
   renderWeekGrid(byWeek ? byWeek['1'] : workouts?.slice(0, 7));
   renderWorkoutList(workouts);
 
@@ -617,7 +621,7 @@ function renderPlan(summary, workouts, byWeek) {
   scrollTop();
 }
 
-function renderIntegrationCards(stravaConnected, garminConnected) {
+function renderIntegrationCards(stravaConnected, garminConnected, stravaName, stravaPic) {
   const stravaUrl = `${API}/auth/strava/connect?userId=${userId}`;
   const garminUrl = `${API}/auth/garmin/connect?userId=${userId}`;
 
@@ -629,7 +633,9 @@ function renderIntegrationCards(stravaConnected, garminConnected) {
           <div class="integration-name">Strava</div>
           <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Activity Tracking</div>
         </div>
+        ${stravaConnected && stravaPic ? `<img src="${stravaPic}" alt="${stravaName}" style="width:36px;height:36px;border-radius:50%;margin-left:auto;object-fit:cover">` : ''}
       </div>
+      ${stravaConnected && stravaName ? `<div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">${stravaName}</div>` : ''}
       <div class="integration-sub">
         ${stravaConnected
           ? '&#10003; Connected -- completed runs sync automatically into your plan.'
