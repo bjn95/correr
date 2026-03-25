@@ -496,8 +496,17 @@ async function loadStatus() {
 function updateStatusChips() {
   const stravaChip = document.getElementById('strava-status-chip');
   const garminChip = document.getElementById('garmin-status-chip');
-  if (connectionStatus.strava) stravaChip.classList.add('connected');
-  else stravaChip.classList.remove('connected');
+  if (connectionStatus.strava) {
+    stravaChip.classList.add('connected');
+    const pic = connectionStatus.stravapic
+      ? `<img src="${connectionStatus.stravapic}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;margin-right:4px;vertical-align:middle">`
+      : '<span class="dot"></span>';
+    const name = connectionStatus.stravaName || 'Strava';
+    stravaChip.innerHTML = `${pic} ${name}`;
+  } else {
+    stravaChip.classList.remove('connected');
+    stravaChip.innerHTML = '<span class="dot"></span> Strava';
+  }
   if (connectionStatus.garmin) garminChip.classList.add('connected');
   else garminChip.classList.remove('connected');
 }
