@@ -455,9 +455,10 @@ function checkUrlParams() {
   const params = new URLSearchParams(window.location.search);
 
   if (params.get('strava_connected')) {
-    showToast('Strava connected! Syncing your recent runs...', 'success');
-    loadStatus();
     window.history.replaceState({}, '', window.location.pathname);
+    showToast('Strava connected! Syncing your recent runs...', 'success');
+    await loadStatus();
+    loadPlan();
   }
   if (params.get('garmin_connected')) {
     showToast('Garmin connected! Pushing your plan to your watch...', 'success');
