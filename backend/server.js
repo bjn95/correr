@@ -175,12 +175,17 @@ app.get('/api/status', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(200).json({ connected: false });
 
+  const activitiesCount = db.prepare(
+    "SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND source = 'strava'"
+  ).get(userId)?.c || 0;
+
   res.json({
     userId: user.id,
     strava: {
-      connected:   !!user.strava_access_token,
-      athleteName: user.strava_athlete_name || null,
-      profilePic:  user.strava_profile_pic  || null,
+      connected:       !!user.strava_access_token,
+      athleteName:     user.strava_athlete_name || null,
+      profilePic:      user.strava_profile_pic  || null,
+      activitiesCount,
     },
     garmin: {
       connected: !!user.garmin_oauth_token,

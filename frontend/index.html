@@ -22,8 +22,17 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem
 /* Connection status badges in nav */
 .nav-status{display:flex;gap:.5rem;align-items:center}
 .status-chip{display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;border-radius:50px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--border);color:var(--muted)}
-.status-chip.connected{border-color:var(--green);color:var(--green);background:var(--green-light)}
+.status-chip.connected{border-color:var(--green);color:var(--green);background:var(--green-light);cursor:pointer}
 .status-chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.strava-dropdown{display:none;position:absolute;top:calc(100% + .5rem);right:0;background:var(--card);border:1.5px solid var(--border);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.1);width:220px;z-index:200;overflow:hidden}
+.strava-dropdown.open{display:block}
+.strava-dropdown-header{display:flex;align-items:center;gap:.75rem;padding:1rem}
+.strava-dropdown-header img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--green)}
+.strava-dropdown-name{font-weight:600;font-size:.9rem;color:var(--ink)}
+.strava-dropdown-meta{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.strava-dropdown-footer{border-top:1px solid var(--border);padding:.6rem}
+.btn-disconnect{width:100%;padding:.5rem;background:none;border:1.5px solid #e53935;color:#e53935;border-radius:4px;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;transition:background .15s,color .15s}
+.btn-disconnect:hover{background:#e53935;color:#fff}
 #hero{display:grid;grid-template-columns:1fr 1fr;min-height:88vh;position:relative;overflow:hidden}
 .hero-left{padding:5rem 3rem 4rem 4rem;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
 .hero-tag{display:inline-flex;align-items:center;gap:.5rem;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1.5rem}
@@ -201,8 +210,22 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <a href="#">Features</a><a href="#">Plans</a><a href="#">Devices</a>
   </div>
   <div class="nav-status">
-    <div class="status-chip" id="strava-status-chip">
-      <span class="dot"></span> Strava
+    <div style="position:relative">
+      <div class="status-chip" id="strava-status-chip" onclick="toggleStravaDropdown(event)">
+        <span class="dot"></span> Strava
+      </div>
+      <div class="strava-dropdown" id="strava-dropdown">
+        <div class="strava-dropdown-header">
+          <img id="strava-dropdown-pic" src="" alt="" style="display:none">
+          <div>
+            <div class="strava-dropdown-name" id="strava-dropdown-name"></div>
+            <div class="strava-dropdown-meta" id="strava-dropdown-meta"></div>
+          </div>
+        </div>
+        <div class="strava-dropdown-footer">
+          <button class="btn-disconnect" onclick="disconnectStrava()">Disconnect Strava</button>
+        </div>
+      </div>
     </div>
     <div class="status-chip" id="garmin-status-chip">
       <span class="dot"></span> Garmin
@@ -487,11 +510,49 @@ async function loadStatus() {
       connectionStatus.strava = data.strava.connected;
       connectionStatus.stravaName = data.strava.athleteName;
       connectionStatus.stravapic = data.strava.profilePic;
+      connectionStatus.stravaActivities = data.strava.activitiesCount || 0;
     }
     if (data.garmin) connectionStatus.garmin = data.garmin.connected;
     updateStatusChips();
   } catch (e) { /* backend not running in demo */ }
 }
+
+function toggleStravaDropdown(e) {
+  e.stopPropagation();
+  if (!connectionStatus.strava) return;
+  const dropdown = document.getElementById('strava-dropdown');
+  const pic = document.getElementById('strava-dropdown-pic');
+  const name = document.getElementById('strava-dropdown-name');
+  const meta = document.getElementById('strava-dropdown-meta');
+  if (connectionStatus.stravapic) { pic.src = connectionStatus.stravapic; pic.style.display = 'block'; }
+  name.textContent = connectionStatus.stravaName || 'Strava';
+  meta.textContent = `${connectionStatus.stravaActivities} run${connectionStatus.stravaActivities !== 1 ? 's' : ''} synced`;
+  dropdown.classList.toggle('open');
+}
+
+async function disconnectStrava() {
+  try {
+    await fetch(`${API}/auth/strava/disconnect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId }),
+    });
+    connectionStatus.strava = false;
+    connectionStatus.stravaName = null;
+    connectionStatus.stravapic = null;
+    connectionStatus.stravaActivities = 0;
+    document.getElementById('strava-dropdown').classList.remove('open');
+    updateStatusChips();
+    showToast('Strava disconnected', 'success');
+  } catch (e) {
+    showToast('Failed to disconnect', 'error');
+  }
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('strava-dropdown')?.classList.remove('open');
+});
 
 function updateStatusChips() {
   const stravaChip = document.getElementById('strava-status-chip');

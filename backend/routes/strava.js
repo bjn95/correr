@@ -151,7 +151,27 @@ router.post('/strava', async (req, res) => {
   }
 });
 
-// ── 5. Manual sync endpoint (for the frontend "Sync now" button) ──────────────
+// ── 5. Disconnect Strava ──────────────────────────────────────────────────────
+// POST /auth/strava/disconnect
+router.post('/disconnect', (req, res) => {
+  const userId = req.session.correrUserId || req.body.userId;
+  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+  db.prepare(`
+    UPDATE users SET
+      strava_id            = NULL,
+      strava_access_token  = NULL,
+      strava_refresh_token = NULL,
+      strava_token_expires = NULL,
+      strava_athlete_name  = NULL,
+      strava_profile_pic   = NULL
+    WHERE id = ?
+  `).run(userId);
+
+  res.json({ disconnected: true });
+});
+
+// ── 6. Manual sync endpoint (for the frontend "Sync now" button) ──────────────
 // POST /auth/strava/sync
 router.post('/sync', async (req, res) => {
   const userId = req.session.correrUserId || req.body.userId;
