@@ -68,6 +68,13 @@ router.get('/callback', async (req, res) => {
       return res.status(404).send('User not found — please create your plan first.');
     }
 
+    // Clear strava_id from any other user row that already has it
+    db.prepare(`
+      UPDATE users SET strava_id = NULL, strava_access_token = NULL,
+        strava_refresh_token = NULL, strava_token_expires = NULL
+      WHERE strava_id = ? AND id != ?
+    `).run(String(athlete.id), userId);
+
     db.prepare(`
       UPDATE users SET
         strava_id            = ?,
