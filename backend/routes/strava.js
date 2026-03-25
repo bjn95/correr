@@ -40,7 +40,7 @@ router.get('/callback', async (req, res) => {
   const userId = req.session.correrUserId;
 
   if (error) {
-    return res.redirect(`${process.env.BASE_URL}?strava_error=${error}`);
+    return res.redirect(`${process.env.FRONTEND_URL}?strava_error=${error}`);
   }
   if (!code || !userId) {
     return res.status(400).send('Missing code or session. Please try connecting again.');
@@ -91,11 +91,11 @@ router.get('/callback', async (req, res) => {
     syncRecentActivities(userId, access_token).catch(console.error);
 
     // Redirect back to the app with success flag
-    res.redirect(`${process.env.BASE_URL}?strava_connected=1`);
+    res.redirect(`${process.env.FRONTEND_URL}?strava_connected=1`);
 
   } catch (err) {
     console.error('Strava OAuth error:', err.response?.data || err.message);
-    res.redirect(`${process.env.BASE_URL}?strava_error=token_exchange_failed`);
+    res.redirect(`${process.env.FRONTEND_URL}?strava_error=token_exchange_failed`);
   }
 });
 
