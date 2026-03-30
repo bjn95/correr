@@ -1013,7 +1013,7 @@ function renderWorkoutList(workouts) {
       <span class="workout-week">W${w.week_number}</span>
       <div>
         <div class="workout-name">${w.name}</div>
-        <div class="workout-sub">${w.scheduled_date || ''}</div>
+        <div class="workout-sub">Week ${w.week_number}, ${w.day_of_week}</div>
       </div>
       <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
       <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
