@@ -301,6 +301,43 @@ app.patch('/api/workout/:id/move', (req, res) => {
   res.json({ workouts: updated });
 });
 
+// PATCH /api/plan/start-date — shift all workout dates to a new start date
+app.patch('/api/plan/start-date', (req, res) => {
+  const userId = req.body.userId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+
+  const { startDate } = req.body;
+  if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    return res.status(400).json({ error: 'Invalid date' });
+  }
+
+  const first = db.prepare(
+    'SELECT scheduled_date FROM plan_workouts WHERE user_id = ? AND scheduled_date IS NOT NULL ORDER BY scheduled_date ASC LIMIT 1'
+  ).get(userId);
+  if (!first) return res.status(404).json({ error: 'No plan found' });
+
+  const offsetDays = Math.round(
+    (new Date(startDate + 'T00:00:00Z') - new Date(first.scheduled_date + 'T00:00:00Z'))
+    / 86400000
+  );
+  if (offsetDays === 0) return res.json({ startDate });
+
+  const workouts = db.prepare(
+    'SELECT id, scheduled_date FROM plan_workouts WHERE user_id = ? AND scheduled_date IS NOT NULL'
+  ).all(userId);
+
+  const update = db.prepare('UPDATE plan_workouts SET scheduled_date = ? WHERE id = ?');
+  db.transaction(() => {
+    for (const w of workouts) {
+      const d = new Date(w.scheduled_date + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + offsetDays);
+      update.run(d.toISOString().slice(0, 10), w.id);
+    }
+  })();
+
+  res.json({ startDate });
+});
+
 // PATCH /api/plan/rename — rename the user's plan
 app.patch('/api/plan/rename', (req, res) => {
   const userId = req.body.userId || req.session.correrUserId;

@@ -120,7 +120,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .plan-header{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:start;margin-bottom:3rem;padding-bottom:2rem;border-bottom:2px solid var(--ink)}
 .plan-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);line-height:1}
 .plan-title span{color:var(--accent)}
-.plan-meta{font-size:.9rem;color:var(--muted);margin-top:.5rem}
+.plan-meta{font-size:.9rem;color:var(--muted);margin-top:.5rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.plan-meta-edit{background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem;padding:0;line-height:1;transition:color .15s}
+.plan-meta-edit:hover{color:var(--ink)}
+.plan-date-picker{display:none;align-items:center;gap:.5rem;margin-top:.4rem}
+.plan-date-picker.open{display:flex}
 .plan-badges{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
 .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .8rem;border-radius:2px;font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
 .badge-accent{background:rgba(232,57,14,.12);color:var(--accent)}
@@ -497,6 +501,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <div class="plan-title" id="plan-title-display" onclick="startRename()" title="Click to rename" style="cursor:pointer">Your <span id="plan-goal-title">Running</span> Plan <span style="font-size:1rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">&#9998;</span></div>
       <input type="text" id="plan-title-input" class="profile-input" style="display:none;font-size:1.8rem;font-weight:700;padding:.4rem .6rem;margin-bottom:.3rem" onblur="finishRename()" onkeydown="if(event.key==='Enter')finishRename();if(event.key==='Escape')cancelRename()">
       <div class="plan-meta" id="plan-meta">Loading plan details...</div>
+      <div class="plan-date-picker" id="plan-date-picker">
+        <input type="date" id="plan-start-input" class="profile-input" style="padding:.4rem .6rem;font-size:.85rem;width:auto">
+        <button class="btn-next" style="padding:.4rem 1rem;font-size:.8rem" onclick="applyStartDate()">Apply</button>
+        <button class="btn-back" style="padding:.4rem .8rem;font-size:.8rem" onclick="closeStartDatePicker()">Cancel</button>
+      </div>
       <div class="plan-badges" id="plan-badges"></div>
     </div>
     <div style="display:flex;gap:.75rem;flex-wrap:wrap">
@@ -976,10 +985,12 @@ async function editPlan() {
 
 function renderPlan(summary, workouts, byWeek) {
   document.getElementById('plan-goal-title').textContent = summary.planName || 'Running';
-  const startDate = workouts?.[0]?.scheduled_date
-    ? new Date(workouts[0].scheduled_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  const rawStart = workouts?.[0]?.scheduled_date || null;
+  const startDisplay = rawStart
+    ? new Date(rawStart + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'next Monday';
-  document.getElementById('plan-meta').innerHTML = `${summary.weeks} week plan &middot; Starting ${startDate}`;
+  document.getElementById('plan-meta').innerHTML =
+    `${summary.weeks} week plan &middot; Starting ${startDisplay} <button class="plan-meta-edit" onclick="openStartDatePicker('${rawStart || ''}')" title="Change start date">&#9998;</button>`;
 
   document.getElementById('sum-weeks').innerHTML = `${summary.weeks}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">wks</em>`;
   document.getElementById('sum-runs').innerHTML = `${summary.totalRuns}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">runs</em>`;
@@ -1446,6 +1457,37 @@ async function saveProfile() {
   }
   btn.innerHTML = 'Save Changes';
   btn.disabled = false;
+}
+
+// ??? START DATE ??????????????????????????????????????????????????????????
+function openStartDatePicker(currentDate) {
+  const input = document.getElementById('plan-start-input');
+  if (currentDate) input.value = currentDate;
+  document.getElementById('plan-date-picker').classList.add('open');
+  input.focus();
+}
+
+function closeStartDatePicker() {
+  document.getElementById('plan-date-picker').classList.remove('open');
+}
+
+async function applyStartDate() {
+  const input = document.getElementById('plan-start-input');
+  const newDate = input.value;
+  if (!newDate) return;
+  closeStartDatePicker();
+  try {
+    await fetch(`${API}/api/plan/start-date`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId, startDate: newDate }),
+    });
+    showToast('Start date updated', 'success');
+    loadPlan();
+  } catch (e) {
+    showToast('Could not update start date', 'error');
+  }
 }
 
 // ??? PLAN RENAME ??????????????????????????????????????????????????????????
