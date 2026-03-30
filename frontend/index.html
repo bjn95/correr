@@ -176,6 +176,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .type-tempo{background:rgba(232,57,14,.1);color:var(--accent)}
 .type-intervals{background:rgba(42,92,255,.1);color:var(--accent2)}
 .type-long{background:rgba(0,0,0,.06);color:var(--ink)}
+/* Week progress bar */
+.week-progress-bar{display:flex;gap:3px;margin-bottom:2rem}
+.week-seg{flex:1;height:8px;border-radius:2px;cursor:pointer;background:var(--border);transition:background .15s,transform .1s;position:relative}
+.week-seg:hover{transform:scaleY(1.4);background:var(--muted)}
+.week-seg.done{background:var(--ink)}
+.week-seg.current{background:rgba(232,57,14,.4)}
+.week-seg[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:.65rem;white-space:nowrap;padding:.25rem .5rem;border-radius:2px;pointer-events:none;z-index:10}
 /* Integration cards */
 .integration-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2.5rem}
 .integration-card{border:2px solid var(--border);border-radius:4px;padding:2rem;display:flex;flex-direction:column;gap:1rem;transition:border-color .2s}
@@ -184,6 +191,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .integration-logo{font-size:2rem}
 .integration-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.5px}
 .integration-sub{font-size:.85rem;color:var(--muted);line-height:1.5}
+/* Compact integration strip (when connected) */
+.integration-strip{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border:1.5px solid var(--green);background:var(--green-light);border-radius:4px;margin-bottom:1.5rem}
+.integration-strip img{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.integration-strip-name{font-weight:600;font-size:.9rem;flex:1}
+.integration-strip-status{font-size:.75rem;color:var(--green);font-weight:600}
+.integration-strip-disconnect{font-size:.75rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;transition:color .15s}
+.integration-strip-disconnect:hover{color:#e53935}
 .integration-card.connected-card .integration-sub{color:var(--green)}
 .btn-connect-card{background:var(--ink);color:#fff;padding:.7rem 1.2rem;border:none;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;transition:background .15s;align-self:flex-start}
 .btn-connect-card:hover{background:var(--accent)}
@@ -520,8 +534,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="summary-item"><div class="summary-num" id="sum-long">—</div><div class="summary-lbl">Peak Long Run</div></div>
   </div>
 
+  <!-- Week progress bar -->
+  <div class="week-progress-bar" id="week-progress-bar"></div>
+
   <!-- Device connections -->
-  <div class="workouts-title" style="margin-bottom:1rem">Connect Your Devices</div>
+  <div class="workouts-title" style="margin-bottom:1rem" id="devices-title">Connect Your Devices</div>
   <div class="integration-grid" id="integration-grid">
     <!-- built by JS -->
   </div>
@@ -974,6 +991,7 @@ function renderPlan(summary, workouts, byWeek) {
   totalPlanWeeks = summary.weeks || 1;
   currentWeek = 1;
 
+  renderWeekProgressBar();
   renderIntegrationCards(connectionStatus.strava, connectionStatus.stravaName, connectionStatus.stravapic);
   renderWeekCarousel();
   renderWorkoutList(workouts);
@@ -985,28 +1003,66 @@ function renderPlan(summary, workouts, byWeek) {
 
 function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
   const stravaUrl = `${API}/auth/strava/connect?userId=${userId}`;
+  const grid = document.getElementById('integration-grid');
+  const title = document.getElementById('devices-title');
 
-  document.getElementById('integration-grid').innerHTML = `
-    <div class="integration-card ${stravaConnected ? 'connected-card' : ''}">
-      <div class="integration-card-header">
-        <div class="integration-logo">&#127939;</div>
-        <div>
-          <div class="integration-name">Strava</div>
-          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Activity Tracking</div>
+  if (stravaConnected) {
+    // Compact strip
+    title.style.display = 'none';
+    grid.style.display = 'none';
+    // Insert/update compact strip
+    let strip = document.getElementById('integration-strip');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'integration-strip';
+      grid.parentNode.insertBefore(strip, grid);
+    }
+    strip.className = 'integration-strip';
+    strip.innerHTML = `
+      ${stravaPic ? `<img src="${stravaPic}" alt="${stravaName}">` : '<span style="font-size:1.5rem">&#127939;</span>'}
+      <span class="integration-strip-name">${stravaName || 'Strava'}</span>
+      <span class="integration-strip-status">&#10003; Strava Connected</span>
+      <button class="integration-strip-disconnect" onclick="disconnectStrava()">Disconnect</button>
+    `;
+  } else {
+    // Full card
+    title.style.display = '';
+    grid.style.display = '';
+    document.getElementById('integration-strip')?.remove();
+    grid.innerHTML = `
+      <div class="integration-card">
+        <div class="integration-card-header">
+          <div class="integration-logo">&#127939;</div>
+          <div>
+            <div class="integration-name">Strava</div>
+            <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Activity Tracking</div>
+          </div>
         </div>
-        ${stravaConnected && stravaPic ? `<img src="${stravaPic}" alt="${stravaName}" style="width:36px;height:36px;border-radius:50%;margin-left:auto;object-fit:cover">` : ''}
+        <div class="integration-sub">Link your Strava account to automatically import completed runs and mark workouts as done.</div>
+        <a href="${stravaUrl}" class="btn-connect-card" style="text-decoration:none;display:inline-block;text-align:center">Connect Strava</a>
       </div>
-      ${stravaConnected && stravaName ? `<div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">${stravaName}</div>` : ''}
-      <div class="integration-sub">
-        ${stravaConnected
-          ? '&#10003; Connected — completed runs sync automatically into your plan.'
-          : 'Link your Strava account to automatically import completed runs and mark workouts as done.'}
-      </div>
-      <a href="${stravaUrl}" class="btn-connect-card ${stravaConnected ? 'connected' : ''}" style="text-decoration:none;display:inline-block;text-align:center">
-        ${stravaConnected ? '&#10003; Connected' : 'Connect Strava'}
-      </a>
-    </div>
-  `;
+    `;
+  }
+}
+
+function renderWeekProgressBar() {
+  const bar = document.getElementById('week-progress-bar');
+  if (!bar) return;
+  bar.innerHTML = Array.from({ length: totalPlanWeeks }, (_, i) => {
+    const w = i + 1;
+    const weekWorkouts = planByWeek[w] || [];
+    const nonRest = weekWorkouts.filter(x => x.workout_type !== 'rest');
+    const allDone = nonRest.length > 0 && nonRest.every(x => x.completed);
+    const cls = allDone ? 'done' : w === currentWeek ? 'current' : '';
+    return `<div class="week-seg ${cls}" onclick="jumpToWeek(${w})" title="Week ${w} · ${weekPhaseLabel(w, totalPlanWeeks)}"></div>`;
+  }).join('');
+}
+
+function jumpToWeek(w) {
+  currentWeek = w;
+  renderWeekCarousel();
+  renderWeekProgressBar();
+  document.getElementById('week-grid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function weekPhaseLabel(week, total) {
@@ -1054,6 +1110,7 @@ function changeWeek(dir) {
   if (next < 1 || next > totalPlanWeeks) return;
   currentWeek = next;
   renderWeekCarousel();
+  renderWeekProgressBar();
 }
 
 function renderWorkoutList(workouts) {
@@ -1172,6 +1229,7 @@ async function toggleWorkout(id) {
   const completedCount = planWorkouts.filter(w => w.completed).length;
   document.getElementById('sum-completed').innerHTML = `${completedCount}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
 
+  renderWeekProgressBar();
   renderWeekCarousel();
   renderWorkoutList(planWorkouts);
 }
