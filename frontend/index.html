@@ -154,7 +154,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .workouts-section{margin-bottom:2.5rem}
 .workouts-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;margin-bottom:1rem;display:flex;align-items:center;gap:.8rem}
 .workouts-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.workout-row{display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:1rem;padding:1rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
+.schedule-week-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.2rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;user-select:none}
+.schedule-week-header:hover{background:rgba(0,0,0,.02)}
+.schedule-week-header.current-week{background:rgba(232,57,14,.04);border-left:3px solid var(--accent)}
+.schedule-week-num{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.5px;min-width:4rem}
+.schedule-week-phase{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:1}
+.schedule-week-count{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.schedule-week-chevron{font-size:.8rem;color:var(--muted);margin-left:.25rem;transition:transform .2s}
+.workout-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:1rem;padding:.85rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
 .workout-row:hover{background:rgba(0,0,0,.02)}
 .workout-row.completed{opacity:.6}
 .workout-row.completed .workout-name{text-decoration:line-through}
@@ -167,7 +174,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .day-check-mark{position:absolute;top:.4rem;right:.4rem;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 .day-card.dragging{opacity:.35;border-style:dashed}
 .day-card.drag-over{border-color:var(--accent2);background:rgba(42,92,255,.07);transform:translateY(-3px)}
-.workout-week{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;width:3rem;text-align:center}
 .workout-name{font-weight:500;font-size:.95rem}
 .workout-sub{font-size:.8rem;color:var(--muted)}
 .workout-dist{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--ink)}
@@ -689,6 +695,7 @@ let planByWeek = {};
 let planWorkouts = [];
 let currentWeek = 1;
 let totalPlanWeeks = 1;
+let expandedWeeks = new Set();
 
 // ??? INIT ?????????????????????????????????????????????????????????????????????
 window.addEventListener('load', async () => {
@@ -990,6 +997,7 @@ function renderPlan(summary, workouts, byWeek) {
   planByWeek = byWeek || {};
   totalPlanWeeks = summary.weeks || 1;
   currentWeek = 1;
+  expandedWeeks = new Set([1]);
 
   renderWeekProgressBar();
   renderIntegrationCards(connectionStatus.strava, connectionStatus.stravaName, connectionStatus.stravapic);
@@ -1115,19 +1123,51 @@ function changeWeek(dir) {
 
 function renderWorkoutList(workouts) {
   if (!workouts?.length) return;
-  const show8Weeks = workouts.filter(w => w.week_number <= 8);
-  document.getElementById('workout-list').innerHTML = show8Weeks.map(w => `
-    <div class="workout-row ${w.completed ? 'completed' : ''}">
-      <span class="workout-week">W${w.week_number}</span>
-      <div>
-        <div class="workout-name">${w.name}</div>
-        <div class="workout-sub">Week ${w.week_number}, ${w.day_of_week}</div>
-      </div>
-      <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
-      <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
-      <button class="workout-check ${w.completed ? 'checked' : ''}" onclick="toggleWorkout(${w.id})" title="${w.completed ? 'Mark incomplete' : 'Mark complete'}">${w.completed ? '&#10003;' : ''}</button>
-    </div>
-  `).join('');
+
+  const grouped = {};
+  for (const w of workouts) {
+    if (!grouped[w.week_number]) grouped[w.week_number] = [];
+    grouped[w.week_number].push(w);
+  }
+
+  const weekNums = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+  let html = '';
+
+  for (const wk of weekNums) {
+    const wWorkouts = grouped[wk];
+    const nonRest = wWorkouts.filter(w => w.workout_type !== 'rest');
+    const doneCount = nonRest.filter(w => w.completed).length;
+    const isExpanded = expandedWeeks.has(wk);
+    const isCurrent = wk === currentWeek;
+
+    html += `<div class="schedule-week-header ${isCurrent ? 'current-week' : ''}" onclick="toggleWeekExpand(${wk})">
+      <span class="schedule-week-num">Week ${wk}</span>
+      <span class="schedule-week-phase">${weekPhaseLabel(wk, totalPlanWeeks)}</span>
+      <span class="schedule-week-count">${doneCount}/${nonRest.length} done</span>
+      <span class="schedule-week-chevron">${isExpanded ? '&#8963;' : '&#8964;'}</span>
+    </div>`;
+
+    if (isExpanded) {
+      html += nonRest.map(w => `
+        <div class="workout-row ${w.completed ? 'completed' : ''}">
+          <div>
+            <div class="workout-name">${w.name}</div>
+            <div class="workout-sub">${w.day_of_week}</div>
+          </div>
+          <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
+          <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
+          <button class="workout-check ${w.completed ? 'checked' : ''}" onclick="toggleWorkout(${w.id})" title="${w.completed ? 'Mark incomplete' : 'Mark complete'}">${w.completed ? '&#10003;' : ''}</button>
+        </div>`).join('');
+    }
+  }
+
+  document.getElementById('workout-list').innerHTML = html;
+}
+
+function toggleWeekExpand(weekNum) {
+  if (expandedWeeks.has(weekNum)) expandedWeeks.delete(weekNum);
+  else expandedWeeks.add(weekNum);
+  renderWorkoutList(planWorkouts);
 }
 
 // ??? DRAG AND DROP ??????????????????????????????????????????????????????????
