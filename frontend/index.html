@@ -264,7 +264,6 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
       <span class="dot"></span> Strava
     </div>
-    <a href="#" id="nav-my-plan" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--ink)">My Plan</a>
     <a href="#" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
   </div>
 </nav>
@@ -937,7 +936,6 @@ function renderPlan(summary, workouts, byWeek) {
   renderWeekCarousel();
   renderWorkoutList(workouts);
 
-  document.getElementById('nav-my-plan').style.display = 'inline';
   show('plan-section');
   scrollTop();
 }
