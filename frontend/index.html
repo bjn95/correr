@@ -194,6 +194,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .type-tempo{background:rgba(232,57,14,.1);color:var(--accent)}
 .type-intervals{background:rgba(42,92,255,.1);color:var(--accent2)}
 .type-long{background:rgba(0,0,0,.06);color:var(--ink)}
+.type-fartlek{background:rgba(138,70,200,.1);color:#7c3aed}
+.type-hills{background:rgba(180,83,9,.1);color:#b45309}
+.type-progression{background:rgba(6,148,162,.1);color:#0694a2}
+.type-cruise{background:rgba(232,57,14,.15);color:var(--accent)}
 /* Week progress bar */
 .week-progress-bar{display:flex;gap:3px;margin-bottom:2rem}
 .week-seg{flex:1;height:8px;border-radius:2px;cursor:pointer;background:var(--border);transition:background .15s,transform .1s;position:relative}
@@ -1330,17 +1334,20 @@ function jumpToWeek(w) {
 }
 
 function weekPhaseLabel(week, total) {
-  if (week === 1) return 'Foundation';
-  if (week > total - 2) return 'Taper';
-  if (week % 4 === 0) return 'Recovery';
-  if (week <= Math.floor(total * 0.4)) return 'Base';
-  return 'Build';
+  if (week === total) return total > 4 ? 'Race Week' : 'Peak';
+  if (week > total - 3) return 'Taper';
+  const buildWeeks = Math.max(total - 3, 1);
+  const phase = (week - 1) / buildWeeks;
+  if (week % 3 === 0 && week > 3) return 'Recovery';
+  if (phase < 0.35) return 'Foundation';
+  if (phase < 0.65) return 'Development';
+  return 'Peak Build';
 }
 
 function renderWeekCarousel() {
   const workouts = planByWeek[String(currentWeek)] || planByWeek[currentWeek] || [];
   const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', rest: '&#128564;' };
+  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;', rest: '&#128564;' };
 
   document.getElementById('week-carousel-title').childNodes[0].textContent = `Week ${currentWeek} `;
   document.getElementById('week-phase-label').textContent = weekPhaseLabel(currentWeek, totalPlanWeeks);
@@ -1626,7 +1633,7 @@ async function renderUpcoming() {
     const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
     const data = await res.json();
     const upcoming = (data.workouts || []).filter(w => !w.completed).slice(0, 4);
-    const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;' };
+    const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;' };
     document.getElementById('upcoming-workouts').innerHTML = upcoming.length
       ? '<div class="run-list">' + upcoming.map(w => `
         <div class="run-item">
