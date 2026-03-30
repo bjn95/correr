@@ -75,6 +75,13 @@ router.get('/callback', async (req, res) => {
       WHERE strava_id = ? AND id != ?
     `).run(String(athlete.id), userId);
 
+    // If connecting a different Strava account, wipe the old activities so
+    // stale data from the previous account doesn't bleed through
+    const currentUser = db.prepare('SELECT strava_id FROM users WHERE id = ?').get(userId);
+    if (currentUser?.strava_id && currentUser.strava_id !== String(athlete.id)) {
+      db.prepare('DELETE FROM activities WHERE user_id = ? AND source = ?').run(userId, 'strava');
+    }
+
     db.prepare(`
       UPDATE users SET
         strava_id            = ?,
@@ -168,6 +175,9 @@ router.post('/disconnect', (req, res) => {
     WHERE id = ?
   `).run(userId);
 
+  // Remove activities tied to this Strava account so they don't linger
+  db.prepare('DELETE FROM activities WHERE user_id = ? AND source = ?').run(userId, 'strava');
+
   res.json({ disconnected: true });
 });
 
@@ -248,6 +258,21 @@ async function fetchStravaActivity(activityId, token) {
 
 async function syncRecentActivities(userId, token) {
   const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
+  const windowStart = new Date(thirtyDaysAgo * 1000).toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Wipe stored activities in the sync window before re-importing from Strava.
+  // This ensures stale data (e.g. from a previous account) never lingers.
+  // First unlink any plan workouts that reference activities in this window.
+  db.prepare(`
+    UPDATE plan_workouts SET completed = 0, linked_activity_id = NULL
+    WHERE user_id = ? AND linked_activity_id IN (
+      SELECT id FROM activities WHERE user_id = ? AND source = 'strava' AND start_date >= ?
+    )
+  `).run(userId, userId, windowStart);
+
+  db.prepare(`
+    DELETE FROM activities WHERE user_id = ? AND source = 'strava' AND start_date >= ?
+  `).run(userId, windowStart);
 
   const res = await axios.get(`${STRAVA_BASE}/athlete/activities`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -261,6 +286,9 @@ async function syncRecentActivities(userId, token) {
   for (const activity of runs) {
     upsertActivity(userId, 'strava', activity);
   }
+
+  // Match all synced activities to plan workouts
+  matchAllActivitiesToPlan(userId);
 
   return runs.length;
 }
@@ -303,7 +331,7 @@ function upsertActivity(userId, source, a) {
 }
 
 function matchActivityToPlan(userId, activity) {
-  // Find an unlinked planned workout on the same date as this activity
+  // Called per-webhook: match one fresh Strava activity to its plan workout
   const actDate = activity.start_date?.slice(0, 10);
   if (!actDate) return;
 
@@ -312,19 +340,45 @@ function matchActivityToPlan(userId, activity) {
   ).get('strava', String(activity.id));
   if (!savedActivity) return;
 
+  matchSavedActivityToWorkout(userId, savedActivity.id, actDate);
+}
+
+function matchSavedActivityToWorkout(userId, activityId, actDate) {
+  // Skip if this activity is already linked to a workout
+  const alreadyLinked = db.prepare(
+    'SELECT id FROM plan_workouts WHERE linked_activity_id = ?'
+  ).get(activityId);
+  if (alreadyLinked) return;
+
+  // Find an unlinked non-rest workout on the same date
   const workout = db.prepare(`
     SELECT id FROM plan_workouts
-    WHERE user_id = ? AND scheduled_date = ? AND completed = 0
+    WHERE user_id = ? AND scheduled_date = ? AND workout_type != 'rest'
+      AND linked_activity_id IS NULL
     LIMIT 1
   `).get(userId, actDate);
 
   if (workout) {
     db.prepare(`
-      UPDATE plan_workouts SET
-        completed = 1, linked_activity_id = ?
+      UPDATE plan_workouts SET completed = 1, linked_activity_id = ?
       WHERE id = ?
-    `).run(savedActivity.id, workout.id);
+    `).run(activityId, workout.id);
   }
 }
 
-module.exports = router;
+// Bulk-match all synced run activities to plan workouts for a user.
+// Safe to call repeatedly — skips already-linked activities and workouts.
+function matchAllActivitiesToPlan(userId) {
+  const activities = db.prepare(`
+    SELECT a.id, substr(a.start_date, 1, 10) AS act_date
+    FROM activities a
+    WHERE a.user_id = ?
+      AND a.sport_type IN ('Run', 'VirtualRun', 'TrailRun')
+  `).all(userId);
+
+  for (const a of activities) {
+    if (a.act_date) matchSavedActivityToWorkout(userId, a.id, a.act_date);
+  }
+}
+
+module.exports = { router, matchAllActivitiesToPlan };

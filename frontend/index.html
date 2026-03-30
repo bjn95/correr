@@ -105,6 +105,13 @@ h1 em{color:var(--accent);font-style:normal}
 .opt-label{font-weight:500}
 .opt-desc{font-size:.8rem;color:var(--muted);display:block;font-weight:400}
 .option-btn.selected .opt-desc{color:inherit;opacity:.7}
+.pace-time-input{width:64px!important;padding:.5rem .6rem!important;text-align:center;font-size:1rem}
+.pace-sep{font-size:1.1rem;color:var(--muted);font-weight:600}
+.pace-preview{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--accent);min-height:1.4em}
+.day-select-grid{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.5rem}
+.day-btn{padding:.6rem 1rem;border:2px solid var(--border);border-radius:3px;background:transparent;color:var(--ink);cursor:pointer;font-size:.9rem;font-weight:600;min-width:58px;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif}
+.day-btn:hover:not(.selected){border-color:var(--ink)}
+.day-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff}
 .slider-wrap{padding:.5rem 0}
 input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px rgba(232,57,14,.15)}
@@ -177,6 +184,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .workout-name{font-weight:500;font-size:.95rem}
 .workout-sub{font-size:.8rem;color:var(--muted)}
 .workout-dist{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--ink)}
+.actual-bar{display:flex;align-items:center;gap:.4rem;margin-top:.3rem;font-size:.78rem;color:var(--green);font-weight:500}
+.actual-bar .actual-icon{font-size:.8rem}
+.day-actual-km{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--green)}
+.day-planned-km{font-size:.6rem;color:var(--muted);margin-top:.1rem}
+.day-pace{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:.15rem}
 .workout-type{padding:.25rem .6rem;border-radius:2px;font-size:.7rem;font-weight:600;text-transform:uppercase}
 .type-easy{background:var(--green-light);color:var(--green)}
 .type-tempo{background:rgba(232,57,14,.1);color:var(--accent)}
@@ -406,15 +418,15 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="section-header">
     <span class="section-kicker">Your personalised plan</span>
     <div class="section-title">Let's Build Your Plan</div>
-    <p class="section-sub">Answer 6 quick questions — we'll generate a structured programme and sync it to your devices.</p>
+    <p class="section-sub">Answer 9 quick questions — we'll generate a structured programme and sync it to your devices.</p>
   </div>
   <div class="survey-progress">
-    <div class="progress-meta"><span class="progress-label">Progress</span><span class="progress-count" id="progress-count">1 of 6</span></div>
+    <div class="progress-meta"><span class="progress-label">Progress</span><span class="progress-count" id="progress-count">1 of 9</span></div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
   </div>
 
   <div class="question-card active" id="q1">
-    <span class="q-number">Question 01 / 06</span>
+    <span class="q-number">Question 01 / 09</span>
     <div class="q-text">What is your primary running goal?</div>
     <div class="q-hint">This shapes everything — distance targets, pace work, and build phases.</div>
     <div class="options">
@@ -428,7 +440,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q2">
-    <span class="q-number">Question 02 / 06</span>
+    <span class="q-number">Question 02 / 09</span>
     <div class="q-text">How would you describe your current running experience?</div>
     <div class="q-hint">Be honest — the right intensity now leads to better results later.</div>
     <div class="options">
@@ -441,62 +453,99 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q3">
-    <span class="q-number">Question 03 / 06</span>
-    <div class="q-text">How many days per week can you commit to training?</div>
-    <div class="q-hint">Include easy runs, cross-training, and rest days in your thinking.</div>
-    <div class="slider-wrap">
-      <div class="slider-value" id="days-value">3 days/week</div>
-      <input type="range" min="2" max="6" value="3" id="days-slider" oninput="updateSlider(this,'days-value',' days/week','q3')">
-      <div class="slider-labels"><span>2 days</span><span>3–4 days</span><span>6 days</span></div>
+    <span class="q-number">Question 03 / 09</span>
+    <div class="q-text">Which days of the week can you run?</div>
+    <div class="q-hint">Select all days that work for you — we'll spread your sessions across them.</div>
+    <div class="day-select-grid" id="day-select-grid">
+      <button class="day-btn" data-day="Mon" onclick="toggleDay('Mon')">Mon</button>
+      <button class="day-btn" data-day="Tue" onclick="toggleDay('Tue')">Tue</button>
+      <button class="day-btn" data-day="Wed" onclick="toggleDay('Wed')">Wed</button>
+      <button class="day-btn" data-day="Thu" onclick="toggleDay('Thu')">Thu</button>
+      <button class="day-btn" data-day="Fri" onclick="toggleDay('Fri')">Fri</button>
+      <button class="day-btn" data-day="Sat" onclick="toggleDay('Sat')">Sat</button>
+      <button class="day-btn" data-day="Sun" onclick="toggleDay('Sun')">Sun</button>
     </div>
-    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(3)">&larr; Back</button><button class="btn-next" onclick="nextQuestion(3)">Continue &rarr;</button></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(3)">&larr; Back</button><button class="btn-next" id="next-q3" disabled onclick="nextQuestion(3)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q4">
-    <span class="q-number">Question 04 / 06</span>
+    <span class="q-number">Question 04 / 09</span>
+    <div class="q-text">Which day is best for your long run?</div>
+    <div class="q-hint">The long run is your most important weekly session — typically a weekend morning.</div>
+    <div class="day-select-grid" id="long-run-day-grid"></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(4)">&larr; Back</button><button class="btn-next" id="next-q4" disabled onclick="nextQuestion(4)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q5">
+    <span class="q-number">Question 05 / 09</span>
     <div class="q-text">How many kilometres do you currently run per week?</div>
     <div class="q-hint">A rough average is fine — this helps us set a safe starting point.</div>
     <div class="slider-wrap">
       <div class="slider-value" id="km-value">20 km/week</div>
-      <input type="range" min="0" max="80" step="5" value="20" id="km-slider" oninput="updateSlider(this,'km-value',' km/week','q4')">
+      <input type="range" min="0" max="80" step="5" value="20" id="km-slider" oninput="updateSlider(this,'km-value',' km/week')">
       <div class="slider-labels"><span>0 km</span><span>40 km</span><span>80+ km</span></div>
     </div>
-    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(4)">&larr; Back</button><button class="btn-next" onclick="nextQuestion(4)">Continue &rarr;</button></div>
-  </div>
-
-  <div class="question-card" id="q5">
-    <span class="q-number">Question 05 / 06</span>
-    <div class="q-text">When is your event or goal deadline?</div>
-    <div class="q-hint">Having a target date keeps training focused and progressive.</div>
-    <div class="options">
-      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q5')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
-    </div>
-    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(5)">&larr; Back</button><button class="btn-next" id="next-q5" disabled onclick="nextQuestion(5)">Continue &rarr;</button></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(5)">&larr; Back</button><button class="btn-next" onclick="nextQuestion(5)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q6">
-    <span class="q-number">Question 06 / 06</span>
-    <div class="q-text">What matters most to you in your training?</div>
-    <div class="q-hint">This shapes the character of your programme.</div>
-    <div class="options">
-      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="speed"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Speed &amp; Performance</span><span class="opt-desc">Get faster, smash my PB</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="endurance"><span class="opt-icon">&#127956;</span><span><span class="opt-label">Endurance &amp; Distance</span><span class="opt-desc">Build mileage, finish strong</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="health"><span class="opt-icon">&#10084;&#65039;</span><span><span class="opt-label">Health &amp; Wellbeing</span><span class="opt-desc">Feel great, reduce stress, stay active</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q6')" data-value="weight"><span class="opt-icon">&#9878;&#65039;</span><span><span class="opt-label">Weight Management</span><span class="opt-desc">Burn calories, body composition</span></span></button>
+    <span class="q-number">Question 06 / 09</span>
+    <div class="q-text">What's your current running pace?</div>
+    <div class="q-hint">Enter a recent race or time trial — we'll use this to set personalised paces across your plan. Skip if you're not sure.</div>
+    <div class="day-select-grid" id="pace-dist-grid">
+      <button class="day-btn" data-dist="5k"       onclick="selectPaceDist('5k')">5K</button>
+      <button class="day-btn" data-dist="10k"      onclick="selectPaceDist('10k')">10K</button>
+      <button class="day-btn" data-dist="half"     onclick="selectPaceDist('half')">Half</button>
+      <button class="day-btn" data-dist="marathon" onclick="selectPaceDist('marathon')">Marathon</button>
+      <button class="day-btn" data-dist="skip"     onclick="selectPaceDist('skip')" style="color:var(--muted)">Not sure</button>
+    </div>
+    <div id="pace-time-wrap" style="display:none;margin-top:.5rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+        <input type="number" id="pace-h" min="0" max="9" placeholder="0" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
+        <span class="pace-sep">h</span>
+        <input type="number" id="pace-m" min="0" max="59" placeholder="25" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
+        <span class="pace-sep">m</span>
+        <input type="number" id="pace-s" min="0" max="59" placeholder="00" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
+        <span class="pace-sep">s</span>
+      </div>
+      <div id="pace-preview" class="pace-preview"></div>
     </div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(6)">&larr; Back</button><button class="btn-next" id="next-q6" disabled onclick="nextQuestion(6)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q7">
-    <span class="q-number">Question 07 / 07</span>
+    <span class="q-number">Question 07 / 09</span>
+    <div class="q-text">When is your event or goal deadline?</div>
+    <div class="q-hint">Having a target date keeps training focused and progressive.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(7)">&larr; Back</button><button class="btn-next" id="next-q7" disabled onclick="nextQuestion(7)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q8">
+    <span class="q-number">Question 08 / 09</span>
+    <div class="q-text">What matters most to you in your training?</div>
+    <div class="q-hint">This shapes the character of your programme.</div>
+    <div class="options">
+      <button class="option-btn" onclick="selectOption(this,'q8')" data-value="speed"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Speed &amp; Performance</span><span class="opt-desc">Get faster, smash my PB</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q8')" data-value="endurance"><span class="opt-icon">&#127956;</span><span><span class="opt-label">Endurance &amp; Distance</span><span class="opt-desc">Build mileage, finish strong</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q8')" data-value="health"><span class="opt-icon">&#10084;&#65039;</span><span><span class="opt-label">Health &amp; Wellbeing</span><span class="opt-desc">Feel great, reduce stress, stay active</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q8')" data-value="weight"><span class="opt-icon">&#9878;&#65039;</span><span><span class="opt-label">Weight Management</span><span class="opt-desc">Burn calories, body composition</span></span></button>
+    </div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(8)">&larr; Back</button><button class="btn-next" id="next-q8" disabled onclick="nextQuestion(8)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q9">
+    <span class="q-number">Question 09 / 09</span>
     <div class="q-text">Give your plan a name.</div>
     <div class="q-hint">We've suggested one based on your goal — change it to anything you like, e.g. "Barcelona Half Marathon".</div>
     <input type="text" id="plan-name-input" class="profile-input" style="font-size:1rem;padding:.8rem 1rem;margin-bottom:.5rem" placeholder="My Training Plan" oninput="answers.planName=this.value">
-    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(7)">&larr; Back</button><button class="btn-next" onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(9)">&larr; Back</button><button class="btn-next" onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
   </div>
 </section>
 
@@ -688,7 +737,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
-const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null, planName: '' };
+const answers = { q1: null, q2: null, q5: 20, q7: null, q8: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
@@ -797,25 +846,35 @@ function startSurvey() {
   hide('hero'); hide('how-it-works');
   show('survey-section');
   scrollTop();
+  // Always reset to q1 so the pace question (and all others) are seen in order
+  document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('q1').classList.add('active');
   updateProgress(1);
 }
 
 function fillTestDefaults() {
-  const defaults = { q1: 'half', q2: 'regular', q5: '12w', q6: 'endurance' };
+  const defaults = { q1: 'half', q2: 'regular', q7: '12w', q8: 'endurance' };
   for (const [q, val] of Object.entries(defaults)) {
     const btn = document.querySelector(`#${q} .option-btn[data-value="${val}"]`);
     if (btn) selectOption(btn, q);
   }
-  const daysSlider = document.getElementById('days-slider');
-  daysSlider.value = 4;
-  daysSlider.dispatchEvent(new Event('input'));
+  // Default days: Mon, Wed, Sat
+  ['Mon', 'Wed', 'Sat'].forEach(d => toggleDay(d));
+  // Default long run day: Sat
+  selectLongRunDay('Sat');
+  // Default pace: 5K in 25:00
+  selectPaceDist('5k');
+  document.getElementById('pace-h').value = 0;
+  document.getElementById('pace-m').value = 25;
+  document.getElementById('pace-s').value = 0;
+  onPaceTimeInput();
   const kmSlider = document.getElementById('km-slider');
   kmSlider.value = 30;
   kmSlider.dispatchEvent(new Event('input'));
-  // Jump to q7 (naming) so user just needs to hit submit
-  ['q1','q2','q3','q4','q5','q6'].forEach(q => document.getElementById(q).classList.remove('active'));
-  document.getElementById('q7').classList.add('active');
-  updateProgress(7);
+  // Jump to q9 (naming) so user just needs to hit submit
+  ['q1','q2','q3','q4','q5','q6','q7','q8'].forEach(q => document.getElementById(q).classList.remove('active'));
+  document.getElementById('q9').classList.add('active');
+  updateProgress(9);
   prefillPlanName();
 }
 
@@ -829,9 +888,10 @@ function selectOption(btn, q) {
 
 function nextQuestion(n) {
   document.getElementById('q' + n).classList.remove('active');
+  if (n + 1 === 4) populateLongRunDayGrid();
   document.getElementById('q' + (n + 1)).classList.add('active');
   updateProgress(n + 1);
-  if (n + 1 === 7) prefillPlanName();
+  if (n + 1 === 9) prefillPlanName();
   window.scrollTo({ top: document.getElementById('survey-section').offsetTop - 80, behavior: 'smooth' });
 }
 
@@ -854,14 +914,117 @@ function prevQuestion(n) {
 }
 
 function updateProgress(n) {
-  document.getElementById('progress-count').textContent = n + ' of 7';
-  document.getElementById('progress-fill').style.width = ((n / 7) * 100) + '%';
+  document.getElementById('progress-count').textContent = n + ' of 9';
+  document.getElementById('progress-fill').style.width = ((n / 9) * 100) + '%';
 }
 
 function updateSlider(input, labelId, suffix) {
   document.getElementById(labelId).textContent = input.value + suffix;
-  if (input.id === 'days-slider') answers.q3 = parseInt(input.value);
-  if (input.id === 'km-slider') answers.q4 = parseInt(input.value);
+  if (input.id === 'km-slider') answers.q5 = parseInt(input.value);
+}
+
+// ── Day selection helpers ──────────────────────────────────────────────────────
+
+function toggleDay(day) {
+  const btn = document.querySelector(`#day-select-grid [data-day="${day}"]`);
+  if (!btn) return;
+  const idx = answers.preferredDays.indexOf(day);
+  if (idx === -1) {
+    answers.preferredDays.push(day);
+    btn.classList.add('selected');
+  } else {
+    answers.preferredDays.splice(idx, 1);
+    btn.classList.remove('selected');
+    // Clear long run day if it was this day
+    if (answers.longRunDay === day) {
+      answers.longRunDay = '';
+      document.getElementById('next-q4').disabled = true;
+    }
+  }
+  document.getElementById('next-q3').disabled = answers.preferredDays.length === 0;
+}
+
+function populateLongRunDayGrid() {
+  const ALL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const sorted = answers.preferredDays.slice().sort((a,b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b));
+  const grid = document.getElementById('long-run-day-grid');
+  grid.innerHTML = '';
+  sorted.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (answers.longRunDay === day ? ' selected' : '');
+    btn.textContent = day;
+    btn.onclick = () => selectLongRunDay(day);
+    grid.appendChild(btn);
+  });
+  // Auto-suggest last day (typically weekend) if nothing set
+  if (!answers.longRunDay && sorted.length > 0) {
+    selectLongRunDay(sorted[sorted.length - 1]);
+  }
+  document.getElementById('next-q4').disabled = !answers.longRunDay;
+}
+
+function selectLongRunDay(day) {
+  answers.longRunDay = day;
+  const grid = document.getElementById('long-run-day-grid');
+  grid.querySelectorAll('.day-btn').forEach(b => {
+    b.classList.toggle('selected', b.textContent === day);
+  });
+  const nb = document.getElementById('next-q4');
+  if (nb) nb.disabled = false;
+}
+
+// ── Pace question helpers ─────────────────────────────────────────────────────
+
+const PACE_DIST_KM = { '5k': 5, '10k': 10, 'half': 21.0975, 'marathon': 42.195 };
+
+function selectPaceDist(dist) {
+  document.querySelectorAll('#pace-dist-grid .day-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`#pace-dist-grid [data-dist="${dist}"]`).classList.add('selected');
+  answers.paceDistance = dist;
+
+  const wrap = document.getElementById('pace-time-wrap');
+  const nextBtn = document.getElementById('next-q6');
+
+  if (dist === 'skip') {
+    wrap.style.display = 'none';
+    answers.paceTimeSecs = null;
+    nextBtn.disabled = false;
+  } else {
+    wrap.style.display = 'block';
+    onPaceTimeInput(); // re-evaluate with current time values
+  }
+}
+
+function onPaceTimeInput() {
+  const h = parseInt(document.getElementById('pace-h').value) || 0;
+  const m = parseInt(document.getElementById('pace-m').value) || 0;
+  const s = parseInt(document.getElementById('pace-s').value) || 0;
+  const totalSecs = h * 3600 + m * 60 + s;
+  const nextBtn = document.getElementById('next-q6');
+  const preview = document.getElementById('pace-preview');
+
+  if (!answers.paceDistance || answers.paceDistance === 'skip' || totalSecs <= 0) {
+    preview.textContent = '';
+    nextBtn.disabled = true;
+    return;
+  }
+
+  answers.paceTimeSecs = totalSecs;
+
+  const distKm = PACE_DIST_KM[answers.paceDistance];
+  const paceSecKm = totalSecs / distKm;
+  const pMin = Math.floor(paceSecKm / 60);
+  const pSec = Math.round(paceSecKm % 60);
+
+  // Derive easy training pace preview using same Riegel logic as backend
+  const t5kSecs  = totalSecs * Math.pow(5 / distKm, 1.06);
+  const pace5k   = t5kSecs / 5;
+  const easySecKm = pace5k * 1.36;
+  const eMin = Math.floor(easySecKm / 60);
+  const eSec = Math.round(easySecKm % 60);
+
+  preview.textContent = `${pMin}:${String(pSec).padStart(2,'0')}/km race pace → easy runs ~${eMin}:${String(eSec).padStart(2,'0')}/km`;
+  nextBtn.disabled = false;
 }
 
 // ??? SUBMIT SURVEY ? POST to backend ?????????????????????????????????????????
@@ -885,14 +1048,18 @@ async function submitSurvey() {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        userId:    userId || undefined,
-        goal:      answers.q1,
-        level:     answers.q2,
-        days:      answers.q3,
-        km:        answers.q4,
-        timeline:  answers.q5,
-        focus:     answers.q6,
-        planName:  answers.planName || undefined,
+        userId:        userId || undefined,
+        goal:          answers.q1,
+        level:         answers.q2,
+        days:          answers.preferredDays.length || 3,
+        km:            answers.q5,
+        timeline:      answers.q7,
+        focus:         answers.q8,
+        planName:      answers.planName || undefined,
+        preferredDays: answers.preferredDays.length > 0 ? answers.preferredDays : undefined,
+        longRunDay:    answers.longRunDay || undefined,
+        paceDistance:  answers.paceDistance !== 'skip' ? (answers.paceDistance || undefined) : undefined,
+        paceTimeSecs:  answers.paceTimeSecs || undefined,
       }),
     });
 
@@ -944,22 +1111,39 @@ async function editPlan() {
     const s = data.survey || {};
 
     // Pre-fill option buttons
-    const optMap = { q1: s.goal, q2: s.level, q5: s.timeline, q6: s.focus };
+    const optMap = { q1: s.goal, q2: s.level, q7: s.timeline, q8: s.focus };
     for (const [q, val] of Object.entries(optMap)) {
       if (!val) continue;
       const btn = document.querySelector(`#${q} .option-btn[data-value="${val}"]`);
       if (btn) selectOption(btn, q);
     }
-    // Pre-fill sliders
-    if (s.days) {
-      const ds = document.getElementById('days-slider');
-      ds.value = s.days;
-      ds.dispatchEvent(new Event('input'));
+    // Pre-fill preferred days
+    answers.preferredDays = [];
+    if (s.preferredDays && s.preferredDays.length > 0) {
+      s.preferredDays.forEach(d => toggleDay(d));
     }
+    answers.longRunDay = s.longRunDay || '';
+    // Pre-fill km slider
     if (s.km) {
       const ks = document.getElementById('km-slider');
       ks.value = s.km;
       ks.dispatchEvent(new Event('input'));
+    }
+    // Pre-fill pace
+    answers.paceDistance = s.paceDistance || null;
+    answers.paceTimeSecs = s.paceTimeSecs || null;
+    if (s.paceDistance === 'skip' || (s.paceDistance && !s.paceTimeSecs)) {
+      // Restore "Not sure" selection so Continue is enabled
+      selectPaceDist('skip');
+    } else if (s.paceDistance && s.paceTimeSecs) {
+      selectPaceDist(s.paceDistance);
+      const h = Math.floor(s.paceTimeSecs / 3600);
+      const m = Math.floor((s.paceTimeSecs % 3600) / 60);
+      const sec = s.paceTimeSecs % 60;
+      document.getElementById('pace-h').value = h || '';
+      document.getElementById('pace-m').value = m;
+      document.getElementById('pace-s').value = sec || '';
+      onPaceTimeInput();
     }
     // Pre-fill plan name
     if (data.summary?.planName) {
@@ -970,6 +1154,15 @@ async function editPlan() {
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
     document.getElementById('q1').classList.add('active');
     updateProgress(1);
+    // Re-render q3 button states to match restored preferredDays
+    document.querySelectorAll('#day-select-grid .day-btn').forEach(btn => {
+      btn.classList.toggle('selected', answers.preferredDays.includes(btn.dataset.day));
+    });
+    document.getElementById('next-q3').disabled = answers.preferredDays.length === 0;
+    // Re-render q6 pace dist buttons
+    document.querySelectorAll('#pace-dist-grid .day-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.dist === answers.paceDistance);
+    });
 
     hide('plan-section');
     show('survey-section');
@@ -1098,6 +1291,10 @@ function renderWeekCarousel() {
     const w = byDay[day];
     const dropAttrs = `ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'${day}')"`;
     if (!w) return `<div class="day-card rest-day" ${dropAttrs}><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
+    const hasActual = w.completed && w.actual_distance_m;
+    const actualKm = hasActual ? (w.actual_distance_m / 1000).toFixed(1) : null;
+    const plannedKm = Math.round(w.target_distance_km);
+    const cardPace = w.target_pace_min_km ? fmtPace(Math.round(w.target_pace_min_km * 60)) : null;
     return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''} ${w.completed ? 'day-done' : ''}"
       draggable="true"
       ondragstart="handleDragStart(event,${w.id})"
@@ -1108,7 +1305,10 @@ function renderWeekCarousel() {
       <div class="day-name">${day}</div>
       <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
       <div class="day-type">${w.workout_type}</div>
-      <div class="day-km">${Math.round(w.target_distance_km)}km</div>
+      ${hasActual
+        ? `<div class="day-actual-km">${actualKm}km</div><div class="day-planned-km">${plannedKm}km plan</div>`
+        : `<div class="day-km">${plannedKm}km</div>`}
+      ${cardPace && !hasActual ? `<div class="day-pace">${cardPace}/km</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1148,16 +1348,30 @@ function renderWorkoutList(workouts) {
     </div>`;
 
     if (isExpanded) {
-      html += nonRest.map(w => `
+      html += nonRest.map(w => {
+        const hasActual = w.completed && w.actual_distance_m;
+        const actualKm  = hasActual ? (w.actual_distance_m / 1000).toFixed(2) : null;
+        const actualPace = hasActual ? fmtPace(w.actual_avg_pace_s_km) : null;
+        const actualTime = hasActual ? fmtDuration(w.actual_moving_time_s) : null;
+        const actualBar  = hasActual
+          ? `<div class="actual-bar"><span class="actual-icon">&#128241;</span>${actualKm}km${actualPace ? ` &middot; ${actualPace}/km` : ''}${actualTime ? ` &middot; ${actualTime}` : ''}</div>`
+          : '';
+        const distDisplay = hasActual
+          ? `<div style="text-align:right"><div class="day-actual-km" style="font-family:'Bebas Neue';font-size:1.1rem">${actualKm}km</div><div style="font-size:.65rem;color:var(--muted)">${Math.round(w.target_distance_km)}km plan</div></div>`
+          : `<span class="workout-dist">${Math.round(w.target_distance_km)}km</span>`;
+        const targetPace = w.target_pace_min_km ? fmtPace(Math.round(w.target_pace_min_km * 60)) : null;
+        return `
         <div class="workout-row ${w.completed ? 'completed' : ''}">
           <div>
             <div class="workout-name">${w.name}</div>
-            <div class="workout-sub">${w.day_of_week}</div>
+            <div class="workout-sub">Week ${w.week_number}, ${w.day_of_week}${targetPace ? ` &middot; ${targetPace}/km` : ''}</div>
+            ${actualBar}
           </div>
-          <span class="workout-dist">${Math.round(w.target_distance_km)}km</span>
+          ${distDisplay}
           <span class="workout-type type-${w.workout_type}">${w.workout_type}</span>
           <button class="workout-check ${w.completed ? 'checked' : ''}" onclick="toggleWorkout(${w.id})" title="${w.completed ? 'Mark incomplete' : 'Mark complete'}">${w.completed ? '&#10003;' : ''}</button>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
   }
 
@@ -1240,6 +1454,18 @@ async function toggleWorkout(id) {
     // Demo mode: just update local state
     const w = planWorkouts.find(w => w.id === id);
     if (w) w.completed = w.completed ? 0 : 1;
+    // Rebuild byWeek from updated planWorkouts
+    const newByWeek = {};
+    for (const w of planWorkouts) {
+      if (!newByWeek[w.week_number]) newByWeek[w.week_number] = [];
+      newByWeek[w.week_number].push(w);
+    }
+    planByWeek = newByWeek;
+    const completedCount = planWorkouts.filter(w => w.completed).length;
+    document.getElementById('sum-completed').innerHTML = `${completedCount}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
+    renderWeekProgressBar();
+    renderWeekCarousel();
+    renderWorkoutList(planWorkouts);
   } else {
     try {
       const res = await fetch(`${API}/api/workout/${id}/toggle`, {
@@ -1248,30 +1474,13 @@ async function toggleWorkout(id) {
         credentials: 'include',
         body: JSON.stringify({ userId }),
       });
-      const data = await res.json();
-      const w = planWorkouts.find(w => w.id === id);
-      if (w) w.completed = data.completed;
+      if (!res.ok) throw new Error(await res.text());
+      // Re-fetch full plan so actual activity data (distance, pace, etc.) is up to date
+      await loadPlan();
     } catch (e) {
       showToast('Could not update workout', 'error');
-      return;
     }
   }
-
-  // Rebuild byWeek from updated planWorkouts
-  const newByWeek = {};
-  for (const w of planWorkouts) {
-    if (!newByWeek[w.week_number]) newByWeek[w.week_number] = [];
-    newByWeek[w.week_number].push(w);
-  }
-  planByWeek = newByWeek;
-
-  // Update completed count in summary
-  const completedCount = planWorkouts.filter(w => w.completed).length;
-  document.getElementById('sum-completed').innerHTML = `${completedCount}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
-
-  renderWeekProgressBar();
-  renderWeekCarousel();
-  renderWorkoutList(planWorkouts);
 }
 
 // ??? PROGRESS ?????????????????????????????????????????????????????????????????
@@ -1283,20 +1492,35 @@ async function showProgress() {
 }
 
 async function loadProgress() {
+  // Fetch both in parallel; network errors on one must not block the other
+  let progressRes, activitiesRes;
   try {
-    const [progressRes, activitiesRes] = await Promise.all([
-      fetch(`${API}/api/progress?userId=${userId}`, { credentials: 'include' }),
-      fetch(`${API}/api/activities?userId=${userId}`, { credentials: 'include' }),
+    [progressRes, activitiesRes] = await Promise.all([
+      fetch(`${API}/api/progress?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
+      fetch(`${API}/api/activities?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
     ]);
-    const progress = await progressRes.json();
-    const activities = await activitiesRes.json();
-
-    renderBarChart(progress.planned, progress.actual);
-    renderRecentRuns(activities);
-    renderUpcoming();
-  } catch (err) {
-    renderDemoProgress();
+  } catch (_) {
+    // Network failure — leave existing content in place
+    return;
   }
+
+  // Render bar chart — failures here must not block the runs list
+  if (progressRes.ok) {
+    try {
+      const progress = await progressRes.json();
+      renderBarChart(progress.planned || [], progress.actual || []);
+    } catch (_) {}
+  }
+
+  // Render recent runs — always attempt this independently
+  if (activitiesRes.ok) {
+    try {
+      const activities = await activitiesRes.json();
+      renderRecentRuns(activities);
+    } catch (_) {}
+  }
+
+  renderUpcoming();
 }
 
 function renderBarChart(planned, actual) {
@@ -1358,6 +1582,8 @@ async function syncNow() {
   const btn = document.getElementById('sync-btn');
   btn.textContent = 'Syncing...';
   btn.disabled = true;
+
+  // Keep sync errors and progress refresh errors independent
   try {
     const res = await fetch(`${API}/auth/strava/sync`, {
       method: 'POST',
@@ -1365,12 +1591,16 @@ async function syncNow() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
+    if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     showToast(`Synced ${data.synced} run${data.synced !== 1 ? 's' : ''} from Strava`, 'success');
-    await loadProgress();
   } catch (e) {
-    showToast('Sync failed -- is Strava connected?', 'error');
+    showToast('Sync failed — is Strava connected?', 'error');
   }
+
+  // Always refresh the progress section after sync attempt
+  await loadProgress();
+
   btn.innerHTML = '&#8635; Sync Now';
   btn.disabled = false;
 }
@@ -1456,13 +1686,37 @@ function renderProfile(data) {
   const focusMap = { speed:'Speed & Performance',endurance:'Endurance & Distance',health:'Health & Wellbeing',weight:'Weight Management' };
   const timelineMap = { '4w':'4 Weeks','8w':'8 Weeks','12w':'12 Weeks','16w':'16+ Weeks','open':'No Fixed Date' };
   const s = data.survey || {};
+  const daysLabel = s.preferredDays && s.preferredDays.length > 0
+    ? s.preferredDays.join(', ')
+    : (s.days ? `${s.days} days/week` : '—');
+  const longRunLabel = s.longRunDay || (s.preferredDays ? s.preferredDays[s.preferredDays.length - 1] : null) || '—';
+
+  let paceLabel = '—';
+  if (s.paceDistance && s.paceTimeSecs) {
+    const distKm = { '5k': 5, '10k': 10, 'half': 21.0975, 'marathon': 42.195 }[s.paceDistance];
+    const distLabel = { '5k': '5K', '10k': '10K', 'half': 'Half', 'marathon': 'Marathon' }[s.paceDistance];
+    if (distKm) {
+      const t5k = s.paceTimeSecs * Math.pow(5 / distKm, 1.06);
+      const easySecKm = (t5k / 5) * 1.36;
+      const eMin = Math.floor(easySecKm / 60);
+      const eSec = Math.round(easySecKm % 60);
+      const h = Math.floor(s.paceTimeSecs / 3600);
+      const m = Math.floor((s.paceTimeSecs % 3600) / 60);
+      const sec = s.paceTimeSecs % 60;
+      const timeStr = h > 0 ? `${h}h${String(m).padStart(2,'0')}m` : `${m}:${String(sec).padStart(2,'0')}`;
+      paceLabel = `${distLabel} ${timeStr} → ~${eMin}:${String(eSec).padStart(2,'0')}/km easy`;
+    }
+  }
+
   document.getElementById('profile-survey-grid').innerHTML = [
-    ['Goal',      goalMap[s.goal]     || s.goal     || '—'],
-    ['Level',     levelMap[s.level]   || s.level    || '—'],
-    ['Days/Week', s.days ? `${s.days} days` : '—'],
-    ['Current KM',s.km   ? `${s.km} km/week` : '—'],
-    ['Timeline',  timelineMap[s.timeline] || s.timeline || '—'],
-    ['Focus',     focusMap[s.focus]   || s.focus    || '—'],
+    ['Goal',        goalMap[s.goal]     || s.goal     || '—'],
+    ['Level',       levelMap[s.level]   || s.level    || '—'],
+    ['Run Days',    daysLabel],
+    ['Long Run Day',longRunLabel],
+    ['Current KM',  s.km   ? `${s.km} km/week` : '—'],
+    ['Current Pace',paceLabel],
+    ['Timeline',    timelineMap[s.timeline] || s.timeline || '—'],
+    ['Focus',       focusMap[s.focus]   || s.focus    || '—'],
   ].map(([label, value]) => `
     <div class="profile-field">
       <span class="profile-label">${label}</span>
@@ -1544,14 +1798,15 @@ async function applyStartDate() {
   if (!newDate) return;
   closeStartDatePicker();
   try {
-    await fetch(`${API}/api/plan/start-date`, {
+    const res = await fetch(`${API}/api/plan/start-date`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ userId, startDate: newDate }),
     });
+    if (!res.ok) throw new Error(await res.text());
     showToast('Start date updated', 'success');
-    loadPlan();
+    await loadPlan();
   } catch (e) {
     showToast('Could not update start date', 'error');
   }
@@ -1617,6 +1872,23 @@ function showSection(section) {
     if (userId) { show('plan-section'); scrollTop(); }
     else { show('hero'); show('how-it-works'); startSurvey(); }
   }
+}
+
+// ── Formatting helpers ────────────────────────────────────────────────────────
+function fmtPace(secPerKm) {
+  if (!secPerKm) return null;
+  const m = Math.floor(secPerKm / 60);
+  const s = Math.round(secPerKm % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function fmtDuration(secs) {
+  if (!secs) return null;
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h${String(m).padStart(2, '0')}m`;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function showToast(msg, type = '') {

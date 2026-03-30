@@ -10,7 +10,7 @@ const session = require('express-session');
 const db      = require('./db');
 const { buildOrUpdatePlan } = require('./plan');
 
-const stravaRouter  = require('./routes/strava');
+const { router: stravaRouter, matchAllActivitiesToPlan } = require('./routes/strava');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -60,27 +60,33 @@ app.use('/webhook', stravaRouter);
 // If userId is provided and exists, updates that user's plan instead of creating a new one
 // Returns: { userId, weeks, totalRuns, peakLongRun, startDate }
 app.post('/api/plan', (req, res) => {
-  const { goal, level, days, km, timeline, focus, planName } = req.body;
+  const { goal, level, days, km, timeline, focus, planName, preferredDays, longRunDay, paceDistance, paceTimeSecs } = req.body;
   const existingId = req.body.userId || req.session.correrUserId;
   const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
+
+  const preferredDaysJson = preferredDays ? JSON.stringify(preferredDays) : null;
 
   let userId;
   if (existing) {
     db.prepare(`
-      UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_km=?, survey_timeline=?, survey_focus=?, plan_name=?
+      UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_km=?, survey_timeline=?, survey_focus=?, plan_name=?,
+        survey_preferred_days=?, survey_long_run_day=?, survey_pace_distance=?, survey_pace_time_s=?
       WHERE id=?
-    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null, existing.id);
+    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null,
+           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null, existing.id);
     userId = existing.id;
   } else {
     const result = db.prepare(`
-      INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus, plan_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null);
+      INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus, plan_name,
+        survey_preferred_days, survey_long_run_day, survey_pace_distance, survey_pace_time_s)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null,
+           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null);
     userId = result.lastInsertRowid;
   }
 
   req.session.correrUserId = userId;
-  const plan = buildOrUpdatePlan(userId, { goal, level, days, km, timeline, focus });
+  const plan = buildOrUpdatePlan(userId, { goal, level, days, km, timeline, focus, preferredDays, longRunDay, paceDistance, paceTimeSecs });
 
   res.json({ userId, ...plan });
 });
@@ -93,10 +99,19 @@ app.get('/api/plan', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
+  // Auto-match any newly synced activities to plan workouts
+  matchAllActivitiesToPlan(userId);
+
   const workouts = db.prepare(`
-    SELECT * FROM plan_workouts
-    WHERE user_id = ?
-    ORDER BY week_number, scheduled_date
+    SELECT pw.*,
+      a.distance_m    AS actual_distance_m,
+      a.moving_time_s AS actual_moving_time_s,
+      a.avg_pace_s_km AS actual_avg_pace_s_km,
+      a.name          AS actual_activity_name
+    FROM plan_workouts pw
+    LEFT JOIN activities a ON pw.linked_activity_id = a.id
+    WHERE pw.user_id = ?
+    ORDER BY pw.week_number, pw.scheduled_date
   `).all(userId);
 
   // Group by week
@@ -117,12 +132,16 @@ app.get('/api/plan', (req, res) => {
   };
 
   const survey = {
-    goal:     user.survey_goal,
-    level:    user.survey_level,
-    days:     user.survey_days,
-    km:       user.survey_km,
-    timeline: user.survey_timeline,
-    focus:    user.survey_focus,
+    goal:          user.survey_goal,
+    level:         user.survey_level,
+    days:          user.survey_days,
+    km:            user.survey_km,
+    timeline:      user.survey_timeline,
+    focus:         user.survey_focus,
+    preferredDays:  user.survey_preferred_days ? JSON.parse(user.survey_preferred_days) : null,
+    longRunDay:     user.survey_long_run_day  || null,
+    paceDistance:   user.survey_pace_distance || null,
+    paceTimeSecs:   user.survey_pace_time_s   || null,
   };
 
   res.json({ summary, workouts, byWeek, survey });
@@ -238,12 +257,14 @@ app.get('/api/profile', (req, res) => {
       activitiesCount: actStats.total_activities || 0,
     },
     survey: {
-      goal:     user.survey_goal,
-      level:    user.survey_level,
-      days:     user.survey_days,
-      km:       user.survey_km,
-      timeline: user.survey_timeline,
-      focus:    user.survey_focus,
+      goal:          user.survey_goal,
+      level:         user.survey_level,
+      days:          user.survey_days,
+      km:            user.survey_km,
+      timeline:      user.survey_timeline,
+      focus:         user.survey_focus,
+      preferredDays: user.survey_preferred_days ? JSON.parse(user.survey_preferred_days) : null,
+      longRunDay:    user.survey_long_run_day || null,
     },
     extra: {
       age:            user.age             || null,
