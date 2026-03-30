@@ -50,12 +50,26 @@ function buildOrUpdatePlan(userId, survey) {
     longRunDay    = null,
     paceDistance  = null,
     paceTimeSecs  = null,
+    raceDate      = null,
   } = survey;
 
-  // Derive plan parameters from survey
-  const weeks       = { '4w': 4, '8w': 8, '12w': 12, '16w': 16, 'open': 10 }[timeline] || 12;
+  // Derive weeks from raceDate if provided, else from timeline string
+  let weeks;
+  if (raceDate) {
+    const startDate = nextMonday();
+    const startMs = new Date(startDate).getTime();
+    const raceMs  = new Date(raceDate).getTime();
+    const weeksUntilRace = Math.round((raceMs - startMs) / (7 * 24 * 60 * 60 * 1000));
+    weeks = Math.max(4, Math.min(24, weeksUntilRace));
+  } else {
+    weeks = { '4w': 4, '8w': 8, '12w': 12, '16w': 16, 'open': 10 }[timeline] || 12;
+  }
+
   const peakKm      = { '5k': 35, '10k': 50, 'half': 65, 'marathon': 80, 'general': 40 }[goal] || 65;
   const peakLongRun = { '5k': 8,  '10k': 12, 'half': 21, 'marathon': 32, 'general': 15 }[goal] || 21;
+
+  // Whether we're targeting a race (determines taper aggressiveness)
+  const isRacePlan = raceDate || ['5k', '10k', 'half', 'marathon'].includes(goal);
 
   // Derive target training paces — from race time if provided, else level-based
   const targetPaces = deriveTargetPaces(paceDistance, paceTimeSecs)
@@ -75,15 +89,34 @@ function buildOrUpdatePlan(userId, survey) {
     ) VALUES (?,?,?,?,?,?,?,?,?)
   `);
 
-  // Weekly mileage progresses from current km to peak, with a cutback every 4th week
   for (let w = 1; w <= weeks; w++) {
-    const isCutback = w % 4 === 0 && w !== weeks;
-    const progressFraction = isCutback ? 0.8 : w / weeks;
-    const weeklyKm = Math.round(km + (peakKm - km) * progressFraction);
+    const weeksFromEnd = weeks - w; // 0 = final week, 1 = one before, etc.
+
+    // Mileage progression with proper taper
+    let weeklyKm;
+    if (weeksFromEnd === 0) {
+      // Race week (or final week): very low volume, keep the legs fresh
+      weeklyKm = Math.round(peakKm * (isRacePlan ? 0.35 : 0.55));
+    } else if (weeksFromEnd === 1) {
+      // Two weeks out: significant taper
+      weeklyKm = Math.round(peakKm * (isRacePlan ? 0.60 : 0.75));
+    } else if (weeksFromEnd === 2) {
+      // Three weeks out: begin taper
+      weeklyKm = Math.round(peakKm * 0.82);
+    } else {
+      // Build phase: progress from starting km toward peak, cutback every 4th week
+      const buildWeeks = Math.max(weeks - 3, 1);
+      const buildIdx   = w - 1; // 0-indexed within build phase
+      const isCutback  = buildIdx > 0 && buildIdx % 3 === 2; // every 3rd build week
+      const progressFraction = isCutback
+        ? ((buildIdx - 1) / buildWeeks) * 0.85
+        : buildIdx / buildWeeks;
+      weeklyKm = Math.round(km + (peakKm - km) * Math.min(progressFraction, 1));
+    }
 
     const schedule = buildWeekSchedule(
       w, weeks, days, weeklyKm, peakLongRun,
-      targetPaces, focus, startDate, preferredDays, longRunDay
+      targetPaces, focus, startDate, preferredDays, longRunDay, isRacePlan
     );
 
     for (const session of schedule) {
@@ -116,19 +149,18 @@ function buildOrUpdatePlan(userId, survey) {
 
 // ── Week schedule builder ─────────────────────────────────────────────────────
 
-function buildWeekSchedule(weekNum, totalWeeks, daysPerWeek, weeklyKm, peakLong, targetPaces, focus, planStart, preferredDays, longRunDay) {
+function buildWeekSchedule(weekNum, totalWeeks, daysPerWeek, weeklyKm, peakLong, targetPaces, focus, planStart, preferredDays, longRunDay, isRacePlan) {
 
-  // Taper in the last 2 weeks
-  const isTaper = weekNum > totalWeeks - 2;
+  const weeksFromEnd = totalWeeks - weekNum;
+  const isRaceWeek   = weeksFromEnd === 0;
+  const isTaper      = weeksFromEnd <= 2;
 
-  // Pace progression: quality sessions start conservatively and build to target
-  // Easy/long paces stay stable — the effort adapts naturally with fitness
-  // Progress reaches 1.0 at the first taper week, then holds
-  const buildWeeks = Math.max(totalWeeks - 2, 1);
+  // Pace progression: quality sessions start conservatively and build to target.
+  // Progress reaches 1.0 at the first taper week, then holds.
+  const buildWeeks = Math.max(totalWeeks - 3, 1);
   const progressFrac = Math.min((weekNum - 1) / buildWeeks, 1.0);
-  // Early weeks add slack (sec/km) to tempo and intervals; it reduces to 0 at target
-  const tempoSlack     = Math.round((1 - progressFrac) * 20); // starts 20s/km slow
-  const intervalsSlack = Math.round((1 - progressFrac) * 25); // starts 25s/km slow
+  const tempoSlack     = Math.round((1 - progressFrac) * 20);
+  const intervalsSlack = Math.round((1 - progressFrac) * 25);
 
   // Week paces (sec/km) — convert to min/km for storage
   const secToMin = s => s / 60;
@@ -159,31 +191,59 @@ function buildWeekSchedule(weekNum, totalWeeks, daysPerWeek, weeklyKm, peakLong,
     ? longRunDay
     : activeDays[activeDays.length - 1];
 
-  // Session type templates by day count (for non-long sessions)
-  const NON_LONG_TYPES = {
-    1: [],
-    2: ['easy'],
-    3: ['easy', 'easy'],
-    4: ['easy', 'tempo', 'easy'],
-    5: ['easy', 'tempo', 'easy', 'easy'],
-    6: ['easy', 'tempo', 'easy', 'intervals', 'easy'],
+  // Non-long session types: intervals and tempo appear once each per week for
+  // plans with enough days; race week replaces quality sessions with easy runs.
+  //
+  // Distribution (non-long days only):
+  //   1 non-long day  → [easy]
+  //   2 non-long days → [easy, tempo]
+  //   3 non-long days → [easy, intervals, tempo]
+  //   4 non-long days → [easy, intervals, easy, tempo]
+  //   5 non-long days → [easy, intervals, easy, tempo, easy]
+  //
+  // Race week: all quality sessions become easy
+  const NON_LONG_TYPES_NORMAL = {
+    1: ['easy'],
+    2: ['easy', 'tempo'],
+    3: ['easy', 'intervals', 'tempo'],
+    4: ['easy', 'intervals', 'easy', 'tempo'],
+    5: ['easy', 'intervals', 'easy', 'tempo', 'easy'],
+  };
+  const NON_LONG_TYPES_RACE_WEEK = {
+    1: ['easy'],
+    2: ['easy', 'easy'],
+    3: ['easy', 'easy', 'easy'],
+    4: ['easy', 'easy', 'easy', 'easy'],
+    5: ['easy', 'easy', 'easy', 'easy', 'easy'],
   };
 
   const nonLongDays  = activeDays.filter(d => d !== effectiveLongRunDay);
-  const nonLongTypes = NON_LONG_TYPES[Math.min(nonLongDays.length, 6)] || NON_LONG_TYPES[2];
+  const typeTable    = (isRacePlan && isRaceWeek) ? NON_LONG_TYPES_RACE_WEEK : NON_LONG_TYPES_NORMAL;
+  const nonLongTypes = typeTable[Math.min(nonLongDays.length, 5)] || typeTable[2];
 
-  // Distribute weekly km across session types
-  const longKm      = Math.min(peakLong * (weekNum / totalWeeks), peakLong);
+  // Long run scaling — grows linearly through build phase, tapers properly
+  const buildFrac  = Math.min((weekNum - 1) / Math.max(totalWeeks - 3, 1), 1);
+  let longKm;
+  if (isRaceWeek && isRacePlan) {
+    longKm = Math.min(10, Math.round(peakLong * 0.35)); // short shakeout or rest
+  } else if (weeksFromEnd === 1) {
+    longKm = Math.round(peakLong * 0.60);
+  } else if (weeksFromEnd === 2) {
+    longKm = Math.round(peakLong * 0.80);
+  } else {
+    longKm = Math.round(peakLong * buildFrac);
+  }
+
   const remaining   = weeklyKm - longKm;
   const easyPerRun  = Math.round(remaining / Math.max(nonLongDays.length, 1));
   const tempoKm     = Math.round(easyPerRun * 0.8);
   const intervalsKm = Math.round(easyPerRun * 0.7);
 
   const distanceMap = {
-    easy:      Math.max(3, Math.round(isTaper ? easyPerRun * 0.7 : easyPerRun)),
-    tempo:     Math.max(3, Math.round(isTaper ? tempoKm * 0.8    : tempoKm)),
-    intervals: Math.max(3, Math.round(isTaper ? intervalsKm * 0.7 : intervalsKm)),
-    long:      Math.max(5, Math.round(isTaper ? longKm * 0.6      : longKm)),
+    easy:      Math.max(3, easyPerRun),
+    tempo:     Math.max(3, tempoKm),
+    intervals: Math.max(3, intervalsKm),
+    long:      Math.max(5, longKm),
   };
 
   const sessions = [];
@@ -223,11 +283,12 @@ function sessionName(type, km, week) {
 
 function sessionDescription(type, km, paceMinKm) {
   const paceStr = formatPace(paceMinKm);
+  const numRepeats = Math.max(4, Math.round(km * 1000 / 600));
   const descriptions = {
     easy: `Comfortable conversational pace. Target ${paceStr}/km. Focus on keeping effort low — you should be able to hold a conversation throughout.`,
     long: `Your weekly long run at easy effort. Target ${paceStr}/km. The goal is time on feet, not speed. Stay relaxed and consistent.`,
     tempo: `Comfortably hard effort — you can speak a few words but not hold a conversation. Target ${paceStr}/km. Builds lactate threshold.`,
-    intervals: `Track or road intervals. ${Math.round(km * 1000 / 600)} × 400m repeats with 200m easy jog recovery. Target interval pace ${paceStr}/km.`,
+    intervals: `Track or road intervals. ${numRepeats} × 400m repeats with 200m easy jog recovery. Target interval pace ${paceStr}/km. Focus on consistent splits.`,
   };
   return descriptions[type] || `Run ${km}km at ${paceStr}/km.`;
 }

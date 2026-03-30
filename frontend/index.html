@@ -515,14 +515,20 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
   <div class="question-card" id="q7">
     <span class="q-number">Question 07 / 09</span>
-    <div class="q-text">When is your event or goal deadline?</div>
-    <div class="q-hint">Having a target date keeps training focused and progressive.</div>
+    <div class="q-text">Do you have a race date?</div>
+    <div class="q-hint">Enter your race date for a precise plan with proper taper, or pick an approximate duration instead.</div>
+    <div style="margin-bottom:1.2rem">
+      <label style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:.5rem">Race date (optional)</label>
+      <input type="date" id="race-date-input" class="profile-input" style="max-width:200px;padding:.6rem .8rem;font-size:.95rem" oninput="onRaceDateInput()">
+      <div id="race-date-preview" style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent);min-height:1.4em;margin-top:.4rem"></div>
+    </div>
+    <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.7rem">Or choose a duration</div>
     <div class="options">
-      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q7')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'4w')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'8w')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'12w')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'16w')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'open')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
     </div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(7)">&larr; Back</button><button class="btn-next" id="next-q7" disabled onclick="nextQuestion(7)">Continue &rarr;</button></div>
   </div>
@@ -737,7 +743,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
-const answers = { q1: null, q2: null, q5: 20, q7: null, q8: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null };
+const answers = { q1: null, q2: null, q5: 20, q7: null, q8: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
@@ -1027,6 +1033,53 @@ function onPaceTimeInput() {
   nextBtn.disabled = false;
 }
 
+// ── Race date / timeline helpers ──────────────────────────────────────────────
+
+function onRaceDateInput() {
+  const input = document.getElementById('race-date-input');
+  const preview = document.getElementById('race-date-preview');
+  const val = input.value; // 'YYYY-MM-DD' or ''
+  const nextBtn = document.getElementById('next-q7');
+
+  if (!val) {
+    answers.raceDate = null;
+    preview.textContent = '';
+    // Keep timeline selection if any
+    nextBtn.disabled = !answers.q7;
+    return;
+  }
+
+  const raceMs = new Date(val + 'T00:00:00Z').getTime();
+  const nowMs  = Date.now();
+  const weeksUntil = Math.round((raceMs - nowMs) / (7 * 24 * 60 * 60 * 1000));
+
+  if (weeksUntil < 1) {
+    preview.textContent = 'Date must be at least 1 week away.';
+    answers.raceDate = null;
+    nextBtn.disabled = !answers.q7;
+    return;
+  }
+
+  answers.raceDate = val;
+  answers.q7 = 'open'; // sentinel — plan.js will use raceDate instead
+  // Clear any selected timeline button since we have an exact date
+  document.querySelectorAll('#q7 .option-btn').forEach(b => b.classList.remove('selected'));
+  preview.textContent = `${weeksUntil} weeks until race day — plan will include a proper taper`;
+  nextBtn.disabled = false;
+}
+
+function selectTimeline(btn, value) {
+  // Clear race date when a duration is chosen
+  answers.raceDate = null;
+  document.getElementById('race-date-input').value = '';
+  document.getElementById('race-date-preview').textContent = '';
+  // Standard option selection
+  btn.closest('.options').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  answers.q7 = value;
+  document.getElementById('next-q7').disabled = false;
+}
+
 // ??? SUBMIT SURVEY ? POST to backend ?????????????????????????????????????????
 async function submitSurvey() {
   hide('survey-section');
@@ -1060,6 +1113,7 @@ async function submitSurvey() {
         longRunDay:    answers.longRunDay || undefined,
         paceDistance:  answers.paceDistance !== 'skip' ? (answers.paceDistance || undefined) : undefined,
         paceTimeSecs:  answers.paceTimeSecs || undefined,
+        raceDate:      answers.raceDate || undefined,
       }),
     });
 
@@ -1149,6 +1203,15 @@ async function editPlan() {
     if (data.summary?.planName) {
       document.getElementById('plan-name-input').value = data.summary.planName;
       answers.planName = data.summary.planName;
+    }
+    // Pre-fill race date
+    answers.raceDate = s.raceDate || null;
+    if (s.raceDate) {
+      document.getElementById('race-date-input').value = s.raceDate;
+      onRaceDateInput();
+    } else if (s.timeline && s.timeline !== 'open') {
+      const btn = document.querySelector(`#q7 .option-btn[data-value="${s.timeline}"]`);
+      if (btn) selectTimeline(btn, s.timeline);
     }
     // Reset to q1
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
