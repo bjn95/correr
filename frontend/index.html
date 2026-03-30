@@ -214,6 +214,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--accent)}
+/* Profile page */
+#profile-section{max-width:800px;margin:0 auto;padding:4rem 2rem 6rem;display:none}
+.profile-hero{display:flex;align-items:center;gap:1.5rem;padding:2rem;background:var(--card);border:1.5px solid var(--border);border-radius:6px;margin-bottom:2rem}
+.profile-avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--green);flex-shrink:0}
+.profile-avatar-placeholder{width:72px;height:72px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0}
+.profile-hero-name{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;line-height:1}
+.profile-hero-meta{font-size:.85rem;color:var(--muted);margin-top:.3rem}
+.profile-hero-actions{margin-left:auto;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
+.profile-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem}
+.profile-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.5px;margin-bottom:1.2rem;display:flex;align-items:center;gap:.8rem}
+.profile-card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.profile-field{display:flex;flex-direction:column;gap:.3rem}
+.profile-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.profile-value{font-size:.95rem;font-weight:500;color:var(--ink)}
+.profile-input{width:100%;padding:.6rem .8rem;border:1.5px solid var(--border);border-radius:3px;font-family:'DM Sans',sans-serif;font-size:.9rem;background:var(--paper);color:var(--ink);transition:border-color .15s}
+.profile-input:focus{outline:none;border-color:var(--ink)}
+.profile-save-row{display:flex;justify-content:flex-end;margin-top:1.2rem}
+@media(max-width:600px){.profile-grid{grid-template-columns:1fr}.profile-hero{flex-wrap:wrap}.profile-hero-actions{margin-left:0}}
 /* How it works */
 #how-it-works{padding:6rem 2rem;border-top:1px solid var(--border)}
 .how-grid{max-width:960px;margin:3rem auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
@@ -242,22 +261,8 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a>
   </div>
   <div class="nav-status">
-    <div style="position:relative">
-      <div class="status-chip" id="strava-status-chip" onclick="toggleStravaDropdown(event)">
-        <span class="dot"></span> Strava
-      </div>
-      <div class="strava-dropdown" id="strava-dropdown">
-        <div class="strava-dropdown-header">
-          <img id="strava-dropdown-pic" src="" alt="" style="display:none">
-          <div>
-            <div class="strava-dropdown-name" id="strava-dropdown-name"></div>
-            <div class="strava-dropdown-meta" id="strava-dropdown-meta"></div>
-          </div>
-        </div>
-        <div class="strava-dropdown-footer">
-          <button class="btn-disconnect" onclick="disconnectStrava()">Disconnect Strava</button>
-        </div>
-      </div>
+    <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
+      <span class="dot"></span> Strava
     </div>
     <a href="#" id="nav-my-plan" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--ink)">My Plan</a>
     <a href="#" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
@@ -552,6 +557,71 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 </section>
 
+<!-- PROFILE -->
+<section id="profile-section">
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem">
+    <button class="btn-back" onclick="history.back()" style="font-size:.8rem;padding:.5rem 1rem">&larr; Back</button>
+    <span class="section-kicker" style="margin:0">Your Account</span>
+  </div>
+
+  <!-- Strava hero -->
+  <div class="profile-hero" id="profile-hero">
+    <div class="profile-avatar-placeholder">&#127939;</div>
+    <div>
+      <div class="profile-hero-name" id="profile-hero-name">Loading...</div>
+      <div class="profile-hero-meta" id="profile-hero-meta"></div>
+    </div>
+    <div class="profile-hero-actions">
+      <button class="btn-disconnect" id="profile-disconnect-btn" onclick="disconnectStrava()" style="width:auto;padding:.5rem 1rem;font-size:.75rem">Disconnect Strava</button>
+    </div>
+  </div>
+
+  <!-- Running profile (from survey) -->
+  <div class="profile-card">
+    <div class="profile-card-title">Running Profile</div>
+    <div class="profile-grid" id="profile-survey-grid">
+      <!-- built by JS -->
+    </div>
+    <div style="margin-top:1.2rem">
+      <button class="btn-secondary" onclick="editPlan()" style="font-size:.8rem;padding:.55rem 1.2rem">Edit Training Plan &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Race goals -->
+  <div class="profile-card">
+    <div class="profile-card-title">Race Goals</div>
+    <div class="profile-grid">
+      <div class="profile-field">
+        <label class="profile-label" for="pf-race-name">Race / Event Name</label>
+        <input class="profile-input" id="pf-race-name" type="text" placeholder="e.g. London Marathon 2026">
+      </div>
+      <div class="profile-field">
+        <label class="profile-label" for="pf-race-date">Race Date</label>
+        <input class="profile-input" id="pf-race-date" type="date">
+      </div>
+      <div class="profile-field">
+        <label class="profile-label" for="pf-race-time">Target Finish Time</label>
+        <input class="profile-input" id="pf-race-time" type="text" placeholder="e.g. 1:45:00">
+      </div>
+      <div class="profile-field">
+        <label class="profile-label" for="pf-age">Age</label>
+        <input class="profile-input" id="pf-age" type="number" min="10" max="99" placeholder="e.g. 32">
+      </div>
+    </div>
+    <div class="profile-save-row">
+      <button class="btn-primary" onclick="saveProfile()" style="font-size:.85rem;padding:.65rem 1.5rem;box-shadow:3px 3px 0 var(--ink)">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="profile-card">
+    <div class="profile-card-title">Training Stats</div>
+    <div class="profile-grid" id="profile-stats-grid">
+      <!-- built by JS -->
+    </div>
+  </div>
+</section>
+
 <footer>
   <div>
     <span class="footer-logo">Correr<span>.</span></span>
@@ -627,17 +697,10 @@ async function loadStatus() {
   } catch (e) { /* backend not running in demo */ }
 }
 
-function toggleStravaDropdown(e) {
-  e.stopPropagation();
-  if (!connectionStatus.strava) return;
-  const dropdown = document.getElementById('strava-dropdown');
-  const pic = document.getElementById('strava-dropdown-pic');
-  const name = document.getElementById('strava-dropdown-name');
-  const meta = document.getElementById('strava-dropdown-meta');
-  if (connectionStatus.stravapic) { pic.src = connectionStatus.stravapic; pic.style.display = 'block'; }
-  name.textContent = connectionStatus.stravaName || 'Strava';
-  meta.textContent = `${connectionStatus.stravaActivities} run${connectionStatus.stravaActivities !== 1 ? 's' : ''} synced`;
-  dropdown.classList.toggle('open');
+function handleStravaChipClick() {
+  if (connectionStatus.strava) {
+    showProfile();
+  }
 }
 
 async function disconnectStrava() {
@@ -652,18 +715,17 @@ async function disconnectStrava() {
     connectionStatus.stravaName = null;
     connectionStatus.stravapic = null;
     connectionStatus.stravaActivities = 0;
-    document.getElementById('strava-dropdown').classList.remove('open');
     updateStatusChips();
     renderIntegrationCards(false, null, null);
     showToast('Strava disconnected', 'success');
+    // Return to plan/home after disconnect
+    hide('profile-section');
+    if (planWorkouts.length) showMyPlan();
+    else { show('hero'); show('how-it-works'); scrollTop(); }
   } catch (e) {
     showToast('Failed to disconnect', 'error');
   }
 }
-
-document.addEventListener('click', () => {
-  document.getElementById('strava-dropdown')?.classList.remove('open');
-});
 
 function updateStatusChips() {
   const stravaChip = document.getElementById('strava-status-chip');
@@ -1136,13 +1198,118 @@ function renderDemoProgress() {
   document.getElementById('upcoming-workouts').innerHTML = `<div style="color:var(--muted);font-size:.9rem">Build your plan to see upcoming workouts.</div>`;
 }
 
+// ??? PROFILE ?????????????????????????????????????????????????????????????????
+async function showProfile() {
+  ['hero','how-it-works','features-section','devices-section','survey-section',
+   'plan-section','progress-section','generating'].forEach(id => hide(id));
+  show('profile-section');
+  scrollTop();
+  await loadProfile();
+}
+
+async function loadProfile() {
+  if (!userId || userId === 'demo') return;
+  try {
+    const res = await fetch(`${API}/api/profile?userId=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    renderProfile(data);
+  } catch (e) {
+    showToast('Could not load profile', 'error');
+  }
+}
+
+function renderProfile(data) {
+  // Hero
+  const heroEl = document.getElementById('profile-hero');
+  const nameEl = document.getElementById('profile-hero-name');
+  const metaEl = document.getElementById('profile-hero-meta');
+
+  if (data.strava.profilePic) {
+    heroEl.querySelector('.profile-avatar-placeholder').outerHTML =
+      `<img class="profile-avatar" src="${data.strava.profilePic}" alt="${data.strava.athleteName}">`;
+  }
+  nameEl.textContent = data.strava.athleteName || 'Runner';
+  metaEl.innerHTML = data.strava.connected
+    ? `<span style="color:var(--green);font-weight:600">&#10003; Strava Connected</span> &middot; ${data.strava.activitiesCount} run${data.strava.activitiesCount !== 1 ? 's' : ''} synced`
+    : '<span style="color:var(--muted)">Strava not connected</span>';
+
+  if (!data.strava.connected) {
+    document.getElementById('profile-disconnect-btn').style.display = 'none';
+  }
+
+  // Survey summary
+  const goalMap = { '5k':'5K Race','10k':'10K Race','half':'Half Marathon','marathon':'Full Marathon','general':'General Fitness' };
+  const levelMap = { beginner:'Complete Beginner',casual:'Casual Runner',regular:'Regular Runner',experienced:'Experienced Runner' };
+  const focusMap = { speed:'Speed & Performance',endurance:'Endurance & Distance',health:'Health & Wellbeing',weight:'Weight Management' };
+  const timelineMap = { '4w':'4 Weeks','8w':'8 Weeks','12w':'12 Weeks','16w':'16+ Weeks','open':'No Fixed Date' };
+  const s = data.survey || {};
+  document.getElementById('profile-survey-grid').innerHTML = [
+    ['Goal',      goalMap[s.goal]     || s.goal     || '—'],
+    ['Level',     levelMap[s.level]   || s.level    || '—'],
+    ['Days/Week', s.days ? `${s.days} days` : '—'],
+    ['Current KM',s.km   ? `${s.km} km/week` : '—'],
+    ['Timeline',  timelineMap[s.timeline] || s.timeline || '—'],
+    ['Focus',     focusMap[s.focus]   || s.focus    || '—'],
+  ].map(([label, value]) => `
+    <div class="profile-field">
+      <span class="profile-label">${label}</span>
+      <span class="profile-value">${value}</span>
+    </div>`).join('');
+
+  // Extra fields
+  const e = data.extra || {};
+  if (e.targetRaceName) document.getElementById('pf-race-name').value = e.targetRaceName;
+  if (e.targetRaceDate) document.getElementById('pf-race-date').value = e.targetRaceDate;
+  if (e.targetRaceTime) document.getElementById('pf-race-time').value = e.targetRaceTime;
+  if (e.age)            document.getElementById('pf-age').value = e.age;
+
+  // Stats
+  const st = data.stats || {};
+  const memberSince = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '—';
+  document.getElementById('profile-stats-grid').innerHTML = [
+    ['Total Runs Planned', st.totalRuns ?? '—'],
+    ['Workouts Completed', st.completed ?? '—'],
+    ['Runs Synced from Strava', data.strava.activitiesCount ?? '—'],
+    ['Member Since', memberSince],
+  ].map(([label, value]) => `
+    <div class="profile-field">
+      <span class="profile-label">${label}</span>
+      <span class="profile-value">${value}</span>
+    </div>`).join('');
+}
+
+async function saveProfile() {
+  const btn = document.querySelector('#profile-section .btn-primary');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+  try {
+    await fetch(`${API}/api/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId,
+        age:             document.getElementById('pf-age').value       || null,
+        targetRaceName:  document.getElementById('pf-race-name').value || null,
+        targetRaceDate:  document.getElementById('pf-race-date').value || null,
+        targetRaceTime:  document.getElementById('pf-race-time').value || null,
+      }),
+    });
+    showToast('Profile saved', 'success');
+  } catch (e) {
+    showToast('Could not save profile', 'error');
+  }
+  btn.innerHTML = 'Save Changes';
+  btn.disabled = false;
+}
+
 // ??? UI UTILS ?????????????????????????????????????????????????????????????????
 function show(id) { const el=document.getElementById(id); if(el) el.style.display='block'; }
 function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 function showSection(section) {
-  ['hero','how-it-works','features-section','devices-section','survey-section','plan-section','progress-section','generating'].forEach(id => hide(id));
+  ['hero','how-it-works','features-section','devices-section','survey-section','plan-section','progress-section','generating','profile-section'].forEach(id => hide(id));
   if (section === 'features') { show('features-section'); scrollTop(); }
   else if (section === 'devices') { show('devices-section'); scrollTop(); }
   else if (section === 'plans') {

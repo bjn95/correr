@@ -82,4 +82,14 @@ db.exec(`
   );
 `);
 
+// ── Migrations (safe to run on existing DBs) ──────────────────────────────────
+for (const sql of [
+  'ALTER TABLE users ADD COLUMN age INTEGER',
+  'ALTER TABLE users ADD COLUMN target_race_name TEXT',
+  'ALTER TABLE users ADD COLUMN target_race_date TEXT',
+  'ALTER TABLE users ADD COLUMN target_race_time TEXT',
+]) {
+  try { db.exec(sql); } catch (_) { /* column already exists */ }
+}
+
 module.exports = db;

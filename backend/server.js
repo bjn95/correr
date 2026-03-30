@@ -183,6 +183,67 @@ app.get('/api/progress', (req, res) => {
   res.json({ actual, planned });
 });
 
+// GET /api/profile?userId=xxx — full user profile (no tokens)
+app.get('/api/profile', (req, res) => {
+  const userId = req.query.userId || req.session.correrUserId;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const activitiesCount = db.prepare(
+    "SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND source = 'strava'"
+  ).get(userId)?.c || 0;
+
+  const totalRuns = db.prepare(
+    "SELECT COUNT(*) as c FROM plan_workouts WHERE user_id = ? AND workout_type != 'rest'"
+  ).get(userId)?.c || 0;
+
+  const completed = db.prepare(
+    'SELECT COUNT(*) as c FROM plan_workouts WHERE user_id = ? AND completed = 1'
+  ).get(userId)?.c || 0;
+
+  res.json({
+    id: user.id,
+    createdAt: user.created_at,
+    strava: {
+      connected:    !!user.strava_access_token,
+      athleteName:  user.strava_athlete_name || null,
+      profilePic:   user.strava_profile_pic  || null,
+      activitiesCount,
+    },
+    survey: {
+      goal:     user.survey_goal,
+      level:    user.survey_level,
+      days:     user.survey_days,
+      km:       user.survey_km,
+      timeline: user.survey_timeline,
+      focus:    user.survey_focus,
+    },
+    extra: {
+      age:             user.age             || null,
+      targetRaceName:  user.target_race_name || null,
+      targetRaceDate:  user.target_race_date || null,
+      targetRaceTime:  user.target_race_time || null,
+    },
+    stats: { totalRuns, completed },
+  });
+});
+
+// PATCH /api/profile — update extra profile fields
+app.patch('/api/profile', (req, res) => {
+  const userId = req.body.userId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+
+  const { age, targetRaceName, targetRaceDate, targetRaceTime } = req.body;
+  db.prepare(`
+    UPDATE users SET age=?, target_race_name=?, target_race_date=?, target_race_time=?
+    WHERE id=?
+  `).run(age || null, targetRaceName || null, targetRaceDate || null, targetRaceTime || null, userId);
+
+  res.json({ updated: true });
+});
+
 // POST /api/workout/:id/toggle — mark a workout complete or incomplete
 app.post('/api/workout/:id/toggle', (req, res) => {
   const workoutId = req.params.id;
