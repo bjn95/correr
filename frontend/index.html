@@ -654,6 +654,7 @@ async function disconnectStrava() {
     connectionStatus.stravaActivities = 0;
     document.getElementById('strava-dropdown').classList.remove('open');
     updateStatusChips();
+    renderIntegrationCards(false, null, null);
     showToast('Strava disconnected', 'success');
   } catch (e) {
     showToast('Failed to disconnect', 'error');
@@ -862,7 +863,7 @@ function renderPlan(summary, workouts, byWeek) {
   totalPlanWeeks = summary.weeks || 1;
   currentWeek = 1;
 
-  renderIntegrationCards(summary.stravaConnected, connectionStatus.stravaName, connectionStatus.stravapic);
+  renderIntegrationCards(connectionStatus.strava, connectionStatus.stravaName, connectionStatus.stravapic);
   renderWeekCarousel();
   renderWorkoutList(workouts);
 
