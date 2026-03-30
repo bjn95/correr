@@ -161,6 +161,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .day-card.day-done{border-color:var(--green);background:var(--green-light)}
 .day-card.day-done .day-type{color:var(--green)}
 .day-check-mark{position:absolute;top:.4rem;right:.4rem;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+.day-card.dragging{opacity:.35;border-style:dashed}
+.day-card.drag-over{border-color:var(--accent2);background:rgba(42,92,255,.07);transform:translateY(-3px)}
 .workout-week{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;width:3rem;text-align:center}
 .workout-name{font-weight:500;font-size:.95rem}
 .workout-sub{font-size:.8rem;color:var(--muted)}
@@ -1021,8 +1023,14 @@ function renderWeekCarousel() {
 
   document.getElementById('week-grid').innerHTML = ALL_DAYS.map(day => {
     const w = byDay[day];
-    if (!w) return `<div class="day-card rest-day"><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
-    return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''} ${w.completed ? 'day-done' : ''}" onclick="toggleWorkout(${w.id})">
+    const dropAttrs = `ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'${day}')"`;
+    if (!w) return `<div class="day-card rest-day" ${dropAttrs}><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
+    return `<div class="day-card ${w.workout_type === 'long' ? 'active-day' : ''} ${w.completed ? 'day-done' : ''}"
+      draggable="true"
+      ondragstart="handleDragStart(event,${w.id})"
+      ondragend="handleDragEnd(event)"
+      ${dropAttrs}
+      onclick="toggleWorkout(${w.id})">
       ${w.completed ? '<div class="day-check-mark">&#10003;</div>' : ''}
       <div class="day-name">${day}</div>
       <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
@@ -1054,6 +1062,70 @@ function renderWorkoutList(workouts) {
       <button class="workout-check ${w.completed ? 'checked' : ''}" onclick="toggleWorkout(${w.id})" title="${w.completed ? 'Mark incomplete' : 'Mark complete'}">${w.completed ? '&#10003;' : ''}</button>
     </div>
   `).join('');
+}
+
+// ??? DRAG AND DROP ??????????????????????????????????????????????????????????
+let draggedWorkoutId = null;
+
+function handleDragStart(e, workoutId) {
+  draggedWorkoutId = workoutId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.classList.add('dragging'), 0);
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.day-card').forEach(c => c.classList.remove('drag-over'));
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function handleDrop(e, targetDay) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedWorkoutId) return;
+
+  const workout = planWorkouts.find(w => w.id === draggedWorkoutId);
+  draggedWorkoutId = null;
+  if (!workout || workout.day_of_week === targetDay) return;
+
+  try {
+    const res = await fetch(`${API}/api/workout/${workout.id}/move`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId, newDay: targetDay }),
+    });
+    const data = await res.json();
+
+    // Splice updated week back into planWorkouts
+    const weekNum = workout.week_number;
+    planWorkouts = planWorkouts.filter(w => w.week_number !== weekNum);
+    planWorkouts.push(...data.workouts);
+    planWorkouts.sort((a, b) => a.week_number - b.week_number);
+
+    const newByWeek = {};
+    for (const w of planWorkouts) {
+      if (!newByWeek[w.week_number]) newByWeek[w.week_number] = [];
+      newByWeek[w.week_number].push(w);
+    }
+    planByWeek = newByWeek;
+
+    renderWeekCarousel();
+    renderWorkoutList(planWorkouts);
+  } catch (err) {
+    showToast('Could not move workout', 'error');
+  }
 }
 
 // ??? WORKOUT TOGGLE ??????????????????????????????????????????????????????????

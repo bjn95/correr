@@ -258,6 +258,48 @@ app.patch('/api/profile', (req, res) => {
   res.json({ updated: true });
 });
 
+// PATCH /api/workout/:id/move — drag-and-drop a workout to a different day
+app.patch('/api/workout/:id/move', (req, res) => {
+  const workoutId = req.params.id;
+  const { newDay, userId: bodyUserId } = req.body;
+  const userId = bodyUserId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+
+  const DAY_OFFSETS = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  if (!(newDay in DAY_OFFSETS)) return res.status(400).json({ error: 'Invalid day' });
+
+  const workout = db.prepare('SELECT * FROM plan_workouts WHERE id = ? AND user_id = ?').get(workoutId, userId);
+  if (!workout) return res.status(404).json({ error: 'Workout not found' });
+
+  // Recalculate scheduled_date for the new day
+  let newDate = null;
+  if (workout.scheduled_date) {
+    const d = new Date(workout.scheduled_date + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - DAY_OFFSETS[workout.day_of_week] + DAY_OFFSETS[newDay]);
+    newDate = d.toISOString().slice(0, 10);
+  }
+
+  // Check for an existing workout on the target day (swap if found)
+  const conflict = db.prepare(
+    'SELECT * FROM plan_workouts WHERE user_id = ? AND week_number = ? AND day_of_week = ? AND id != ?'
+  ).get(userId, workout.week_number, newDay, workoutId);
+
+  db.transaction(() => {
+    db.prepare('UPDATE plan_workouts SET day_of_week = ?, scheduled_date = ? WHERE id = ?')
+      .run(newDay, newDate, workoutId);
+    if (conflict) {
+      db.prepare('UPDATE plan_workouts SET day_of_week = ?, scheduled_date = ? WHERE id = ?')
+        .run(workout.day_of_week, workout.scheduled_date, conflict.id);
+    }
+  })();
+
+  const updated = db.prepare(
+    'SELECT * FROM plan_workouts WHERE user_id = ? AND week_number = ? ORDER BY scheduled_date'
+  ).all(userId, workout.week_number);
+
+  res.json({ workouts: updated });
+});
+
 // POST /api/workout/:id/toggle — mark a workout complete or incomplete
 app.post('/api/workout/:id/toggle', (req, res) => {
   const workoutId = req.params.id;
