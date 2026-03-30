@@ -390,6 +390,18 @@ app.patch('/api/plan/rename', (req, res) => {
   res.json({ planName: planName || null });
 });
 
+// DELETE /api/plan — delete all plan workouts for a user
+app.delete('/api/plan', (req, res) => {
+  const userId = req.body.userId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  db.prepare('DELETE FROM plan_workouts WHERE user_id = ?').run(userId);
+  res.json({ deleted: true });
+});
+
 // POST /api/workout/:id/toggle — mark a workout complete or incomplete
 app.post('/api/workout/:id/toggle', (req, res) => {
   const workoutId = req.params.id;

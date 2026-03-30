@@ -587,9 +587,17 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       </div>
       <div class="plan-badges" id="plan-badges"></div>
     </div>
-    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
       <button class="btn-secondary" onclick="editPlan()" style="font-size:.8rem;padding:.6rem 1.2rem">Edit Plan</button>
       <button class="btn-primary" onclick="showProgress()">View Progress &#8594;</button>
+      <div id="delete-plan-wrap" style="margin-left:.25rem">
+        <button id="delete-plan-btn" onclick="confirmDeletePlan()" style="background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;padding:.6rem .5rem;font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px" title="Delete plan">Delete plan</button>
+        <span id="delete-plan-confirm" style="display:none;align-items:center;gap:.5rem">
+          <span style="font-size:.8rem;color:var(--muted)">Are you sure?</span>
+          <button onclick="deletePlan()" style="background:#e53935;color:#fff;border:none;border-radius:2px;padding:.4rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.4px">Delete</button>
+          <button onclick="cancelDeletePlan()" style="background:none;border:1.5px solid var(--border);border-radius:2px;padding:.4rem .8rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif">Cancel</button>
+        </span>
+      </div>
     </div>
   </div>
   <div class="plan-summary">
@@ -1860,6 +1868,41 @@ function openStartDatePicker(currentDate) {
 
 function closeStartDatePicker() {
   document.getElementById('plan-date-picker').classList.remove('open');
+}
+
+function confirmDeletePlan() {
+  document.getElementById('delete-plan-btn').style.display = 'none';
+  const confirm = document.getElementById('delete-plan-confirm');
+  confirm.style.display = 'inline-flex';
+}
+
+function cancelDeletePlan() {
+  document.getElementById('delete-plan-confirm').style.display = 'none';
+  document.getElementById('delete-plan-btn').style.display = '';
+}
+
+async function deletePlan() {
+  cancelDeletePlan();
+  try {
+    const res = await fetch(`${API}/api/plan`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    planWorkouts = [];
+    planByWeek = {};
+    localStorage.removeItem('correr_user_id');
+    userId = null;
+    hide('plan-section');
+    show('hero');
+    show('how-it-works');
+    scrollTop();
+    showToast('Plan deleted', 'success');
+  } catch (e) {
+    showToast('Could not delete plan', 'error');
+  }
 }
 
 async function applyStartDate() {
