@@ -164,6 +164,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .schedule-week-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.2rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;user-select:none}
 .schedule-week-header:hover{background:rgba(0,0,0,.02)}
 .schedule-week-header.current-week{background:rgba(232,57,14,.04);border-left:3px solid var(--accent)}
+.schedule-week-header.race-week{background:rgba(232,57,14,.06);border-left:3px solid var(--accent)}
+.race-day-row{display:flex;align-items:center;gap:.75rem;padding:.9rem 1.2rem;background:var(--accent);color:#fff;font-weight:600;font-size:.9rem;letter-spacing:.3px}
+.race-day-row .race-day-date{font-family:'DM Mono',monospace;font-size:.8rem;opacity:.85;margin-left:auto}
 .schedule-week-num{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.5px;min-width:4rem}
 .schedule-week-phase{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:1}
 .schedule-week-count{font-size:.78rem;color:var(--muted);white-space:nowrap}
@@ -760,6 +763,7 @@ let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
 let planWorkouts = [];
+let planRaceDate = null;
 let currentWeek = 1;
 let totalPlanWeeks = 1;
 let expandedWeeks = new Set();
@@ -1153,7 +1157,7 @@ async function loadPlan() {
   try {
     const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
     const data = await res.json();
-    renderPlan(data.summary, data.workouts, data.byWeek);
+    renderPlan(data.summary, data.workouts, data.byWeek, data.survey?.raceDate || null);
   } catch (err) {
     showDemoPlan();
   }
@@ -1247,7 +1251,7 @@ async function editPlan() {
   }
 }
 
-function renderPlan(summary, workouts, byWeek) {
+function renderPlan(summary, workouts, byWeek, raceDate) {
   document.getElementById('plan-goal-title').textContent = summary.planName || 'Running';
   const rawStart = workouts?.[0]?.scheduled_date || null;
   const startDisplay = rawStart
@@ -1256,6 +1260,19 @@ function renderPlan(summary, workouts, byWeek) {
   document.getElementById('plan-meta').innerHTML =
     `${summary.weeks} week plan &middot; Starting ${startDisplay} <button class="plan-meta-edit" onclick="openStartDatePicker('${rawStart || ''}')" title="Change start date">&#9998;</button>`;
 
+  // Race date badge
+  const badgesEl = document.getElementById('plan-badges');
+  if (raceDate) {
+    const raceDateDisplay = new Date(raceDate + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const nowMs = Date.now();
+    const raceMs = new Date(raceDate + 'T00:00:00Z').getTime();
+    const daysUntil = Math.ceil((raceMs - nowMs) / 86400000);
+    const countdown = daysUntil > 0 ? ` &middot; ${daysUntil} days to go` : daysUntil === 0 ? ' &middot; Race day!' : ' &middot; Complete';
+    badgesEl.innerHTML = `<span class="badge badge-accent">&#127937; Race Day: ${raceDateDisplay}${countdown}</span>`;
+  } else {
+    badgesEl.innerHTML = '';
+  }
+
   document.getElementById('sum-weeks').innerHTML = `${summary.weeks}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">wks</em>`;
   document.getElementById('sum-runs').innerHTML = `${summary.totalRuns}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">runs</em>`;
   document.getElementById('sum-completed').innerHTML = `${summary.completed}<em style="font-size:1.2rem;color:var(--accent);font-style:normal">done</em>`;
@@ -1263,6 +1280,7 @@ function renderPlan(summary, workouts, byWeek) {
 
   planWorkouts = workouts || [];
   planByWeek = byWeek || {};
+  planRaceDate = raceDate || null;
   totalPlanWeeks = summary.weeks || 1;
   currentWeek = 1;
   expandedWeeks = new Set([1]);
@@ -1418,8 +1436,11 @@ function renderWorkoutList(workouts) {
     const isExpanded = expandedWeeks.has(wk);
     const isCurrent = wk === currentWeek;
 
-    html += `<div class="schedule-week-header ${isCurrent ? 'current-week' : ''}" onclick="toggleWeekExpand(${wk})">
-      <span class="schedule-week-num">Week ${wk}</span>
+    const isRaceWeek = planRaceDate && wk === totalPlanWeeks;
+    const headerClass = isCurrent ? 'current-week' : isRaceWeek ? 'race-week' : '';
+    const raceFlag = isRaceWeek ? ' <span style="font-size:.7rem;background:var(--accent);color:#fff;padding:.15rem .5rem;border-radius:2px;font-family:\'DM Sans\',sans-serif;font-weight:700;letter-spacing:.5px;text-transform:uppercase">Race Week</span>' : '';
+    html += `<div class="schedule-week-header ${headerClass}" onclick="toggleWeekExpand(${wk})">
+      <span class="schedule-week-num">Week ${wk}${raceFlag}</span>
       <span class="schedule-week-phase">${weekPhaseLabel(wk, totalPlanWeeks)}</span>
       <span class="schedule-week-count">${doneCount}/${nonRest.length} done</span>
       <span class="schedule-week-chevron">${isExpanded ? '&#8963;' : '&#8964;'}</span>
@@ -1451,6 +1472,12 @@ function renderWorkoutList(workouts) {
         </div>`;
       }).join('');
     }
+  }
+
+  // Race day row after the final week
+  if (planRaceDate) {
+    const raceDateDisplay = new Date(planRaceDate + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    html += `<div class="race-day-row">&#127937; Race Day<span class="race-day-date">${raceDateDisplay}</span></div>`;
   }
 
   document.getElementById('workout-list').innerHTML = html;
