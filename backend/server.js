@@ -192,26 +192,50 @@ app.get('/api/profile', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const activitiesCount = db.prepare(
-    "SELECT COUNT(*) as c FROM activities WHERE user_id = ? AND source = 'strava'"
-  ).get(userId)?.c || 0;
+  // Activity stats from Strava syncs
+  const actStats = db.prepare(`
+    SELECT
+      COUNT(*)                            AS total_activities,
+      ROUND(SUM(distance_m) / 1000.0, 1) AS total_km,
+      SUM(moving_time_s)                  AS total_time_s,
+      ROUND(MAX(distance_m) / 1000.0, 1) AS longest_km,
+      ROUND(AVG(CASE WHEN avg_pace_s_km > 0 THEN avg_pace_s_km END)) AS avg_pace_s
+    FROM activities
+    WHERE user_id = ? AND sport_type IN ('Run','VirtualRun','TrailRun')
+  `).get(userId) || {};
 
-  const totalRuns = db.prepare(
-    "SELECT COUNT(*) as c FROM plan_workouts WHERE user_id = ? AND workout_type != 'rest'"
-  ).get(userId)?.c || 0;
+  // Plan stats
+  const planStats = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE workout_type != 'rest')  AS total_planned,
+      COUNT(*) FILTER (WHERE completed = 1)           AS total_completed,
+      MAX(week_number)                                AS plan_weeks,
+      COUNT(DISTINCT week_number) FILTER (WHERE completed = 1) AS weeks_with_run
+    FROM plan_workouts WHERE user_id = ?
+  `).get(userId) || {};
 
-  const completed = db.prepare(
-    'SELECT COUNT(*) as c FROM plan_workouts WHERE user_id = ? AND completed = 1'
-  ).get(userId)?.c || 0;
+  const totalPlanned  = planStats.total_planned  || 0;
+  const totalCompleted = planStats.total_completed || 0;
+  const completionRate = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0;
+
+  const totalTimeSec = actStats.total_time_s || 0;
+  const totalTimeH   = Math.floor(totalTimeSec / 3600);
+  const totalTimeM   = Math.floor((totalTimeSec % 3600) / 60);
+  const totalTimeStr = totalTimeH > 0 ? `${totalTimeH}h ${totalTimeM}m` : totalTimeM > 0 ? `${totalTimeM}m` : '—';
+
+  const avgPaceSec = actStats.avg_pace_s || 0;
+  const avgPaceStr = avgPaceSec > 0
+    ? `${Math.floor(avgPaceSec / 60)}:${String(avgPaceSec % 60).padStart(2, '0')}`
+    : '—';
 
   res.json({
     id: user.id,
     createdAt: user.created_at,
     strava: {
-      connected:    !!user.strava_access_token,
-      athleteName:  user.strava_athlete_name || null,
-      profilePic:   user.strava_profile_pic  || null,
-      activitiesCount,
+      connected:      !!user.strava_access_token,
+      athleteName:    user.strava_athlete_name || null,
+      profilePic:     user.strava_profile_pic  || null,
+      activitiesCount: actStats.total_activities || 0,
     },
     survey: {
       goal:     user.survey_goal,
@@ -222,19 +246,23 @@ app.get('/api/profile', (req, res) => {
       focus:    user.survey_focus,
     },
     extra: {
-      age:             user.age             || null,
-      targetRaceName:  user.target_race_name || null,
-      targetRaceDate:  user.target_race_date || null,
-      targetRaceTime:  user.target_race_time || null,
+      age:            user.age             || null,
+      targetRaceName: user.target_race_name || null,
+      targetRaceDate: user.target_race_date || null,
+      targetRaceTime: user.target_race_time || null,
     },
-    pbs: {
-      mile:     user.pb_1mile    || null,
-      '5k':     user.pb_5k      || null,
-      '10k':    user.pb_10k     || null,
-      half:     user.pb_half    || null,
-      marathon: user.pb_marathon || null,
+    stats: {
+      totalDistanceKm:  actStats.total_km     || 0,
+      totalRuns:        actStats.total_activities || 0,
+      totalTime:        totalTimeStr,
+      longestRunKm:     actStats.longest_km   || 0,
+      avgPace:          avgPaceStr,
+      totalPlanned,
+      totalCompleted,
+      completionRate,
+      planWeeks:        planStats.plan_weeks  || 0,
+      weeksWithRun:     planStats.weeks_with_run || 0,
     },
-    stats: { totalRuns, completed },
   });
 });
 
@@ -243,18 +271,11 @@ app.patch('/api/profile', (req, res) => {
   const userId = req.body.userId || req.session.correrUserId;
   if (!userId) return res.status(401).json({ error: 'userId required' });
 
-  const { age, targetRaceName, targetRaceDate, targetRaceTime,
-          pb1mile, pb5k, pb10k, pbHalf, pbMarathon } = req.body;
+  const { age, targetRaceName, targetRaceDate, targetRaceTime } = req.body;
   db.prepare(`
-    UPDATE users SET
-      age=?, target_race_name=?, target_race_date=?, target_race_time=?,
-      pb_1mile=?, pb_5k=?, pb_10k=?, pb_half=?, pb_marathon=?
+    UPDATE users SET age=?, target_race_name=?, target_race_date=?, target_race_time=?
     WHERE id=?
-  `).run(
-    age || null, targetRaceName || null, targetRaceDate || null, targetRaceTime || null,
-    pb1mile || null, pb5k || null, pb10k || null, pbHalf || null, pbMarathon || null,
-    userId
-  );
+  `).run(age || null, targetRaceName || null, targetRaceDate || null, targetRaceTime || null, userId);
 
   res.json({ updated: true });
 });

@@ -632,41 +632,13 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     </div>
   </div>
 
-  <!-- Personal Bests -->
-  <div class="profile-card">
-    <div class="profile-card-title">Personal Bests</div>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.2rem">Enter your best times — these help Correr set smarter pace targets in your plan.</p>
-    <div class="profile-grid">
-      <div class="profile-field">
-        <label class="profile-label" for="pf-pb-mile">1 Mile</label>
-        <input class="profile-input" id="pf-pb-mile" type="text" placeholder="e.g. 6:30">
-      </div>
-      <div class="profile-field">
-        <label class="profile-label" for="pf-pb-5k">5K</label>
-        <input class="profile-input" id="pf-pb-5k" type="text" placeholder="e.g. 22:15">
-      </div>
-      <div class="profile-field">
-        <label class="profile-label" for="pf-pb-10k">10K</label>
-        <input class="profile-input" id="pf-pb-10k" type="text" placeholder="e.g. 46:30">
-      </div>
-      <div class="profile-field">
-        <label class="profile-label" for="pf-pb-half">Half Marathon</label>
-        <input class="profile-input" id="pf-pb-half" type="text" placeholder="e.g. 1:42:00">
-      </div>
-      <div class="profile-field">
-        <label class="profile-label" for="pf-pb-marathon">Marathon</label>
-        <input class="profile-input" id="pf-pb-marathon" type="text" placeholder="e.g. 3:45:00">
-      </div>
-    </div>
-    <div class="profile-save-row">
-      <button class="btn-primary" onclick="saveProfile()" style="font-size:.85rem;padding:.65rem 1.5rem;box-shadow:3px 3px 0 var(--ink)">Save Changes</button>
-    </div>
-  </div>
-
-  <!-- Stats -->
+  <!-- Training Stats -->
   <div class="profile-card">
     <div class="profile-card-title">Training Stats</div>
-    <div class="profile-grid" id="profile-stats-grid">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1.5rem" id="profile-stats-activity">
+      <!-- built by JS -->
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden" id="profile-stats-plan">
       <!-- built by JS -->
     </div>
   </div>
@@ -1406,27 +1378,29 @@ function renderProfile(data) {
   if (e.targetRaceTime) document.getElementById('pf-race-time').value = e.targetRaceTime;
   if (e.age)            document.getElementById('pf-age').value = e.age;
 
-  // Personal bests
-  const pb = data.pbs || {};
-  if (pb.mile)     document.getElementById('pf-pb-mile').value = pb.mile;
-  if (pb['5k'])    document.getElementById('pf-pb-5k').value = pb['5k'];
-  if (pb['10k'])   document.getElementById('pf-pb-10k').value = pb['10k'];
-  if (pb.half)     document.getElementById('pf-pb-half').value = pb.half;
-  if (pb.marathon) document.getElementById('pf-pb-marathon').value = pb.marathon;
-
-  // Stats
+  // Training stats
   const st = data.stats || {};
-  const memberSince = data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '—';
-  document.getElementById('profile-stats-grid').innerHTML = [
-    ['Total Runs Planned', st.totalRuns ?? '—'],
-    ['Workouts Completed', st.completed ?? '—'],
-    ['Runs Synced from Strava', data.strava.activitiesCount ?? '—'],
-    ['Member Since', memberSince],
-  ].map(([label, value]) => `
-    <div class="profile-field">
-      <span class="profile-label">${label}</span>
-      <span class="profile-value">${value}</span>
-    </div>`).join('');
+  const memberSince = data.createdAt
+    ? new Date(data.createdAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '—';
+
+  function statCell(num, unit, label) {
+    return `<div class="summary-item">
+      <div class="summary-num">${num}<em style="font-size:1rem;color:var(--accent);font-style:normal">${unit}</em></div>
+      <div class="summary-lbl">${label}</div>
+    </div>`;
+  }
+
+  document.getElementById('profile-stats-activity').innerHTML =
+    statCell(st.totalDistanceKm || '—', st.totalDistanceKm ? 'km' : '', 'Total Distance') +
+    statCell(st.totalRuns || '—', '', 'Runs Synced') +
+    statCell(st.totalTime || '—', '', 'Time on Feet') +
+    statCell(st.longestRunKm || '—', st.longestRunKm ? 'km' : '', 'Longest Run');
+
+  document.getElementById('profile-stats-plan').innerHTML =
+    statCell(st.totalPlanned || '—', '', 'Runs Planned') +
+    statCell(st.totalCompleted || '—', '', 'Completed') +
+    statCell(st.completionRate != null ? st.completionRate : '—', st.completionRate != null ? '%' : '', 'Completion Rate') +
+    statCell(memberSince, '', 'Member Since');
 }
 
 async function saveProfile() {
@@ -1440,15 +1414,10 @@ async function saveProfile() {
       credentials: 'include',
       body: JSON.stringify({
         userId,
-        age:            document.getElementById('pf-age').value        || null,
-        targetRaceName: document.getElementById('pf-race-name').value  || null,
-        targetRaceDate: document.getElementById('pf-race-date').value  || null,
-        targetRaceTime: document.getElementById('pf-race-time').value  || null,
-        pb1mile:        document.getElementById('pf-pb-mile').value    || null,
-        pb5k:           document.getElementById('pf-pb-5k').value      || null,
-        pb10k:          document.getElementById('pf-pb-10k').value     || null,
-        pbHalf:         document.getElementById('pf-pb-half').value    || null,
-        pbMarathon:     document.getElementById('pf-pb-marathon').value || null,
+        age:            document.getElementById('pf-age').value       || null,
+        targetRaceName: document.getElementById('pf-race-name').value || null,
+        targetRaceDate: document.getElementById('pf-race-date').value || null,
+        targetRaceTime: document.getElementById('pf-race-time').value || null,
       }),
     });
     showToast('Profile saved', 'success');
