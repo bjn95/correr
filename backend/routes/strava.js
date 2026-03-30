@@ -257,29 +257,32 @@ async function fetchStravaActivity(activityId, token) {
 }
 
 async function syncRecentActivities(userId, token) {
-  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
-  const windowStart = new Date(thirtyDaysAgo * 1000).toISOString().slice(0, 10); // YYYY-MM-DD
-
-  // Wipe stored activities in the sync window before re-importing from Strava.
-  // This ensures stale data (e.g. from a previous account) never lingers.
-  // First unlink any plan workouts that reference activities in this window.
+  // Wipe all stored Strava activities and re-import full history.
+  // Unlink plan workouts first to satisfy the FK constraint.
   db.prepare(`
     UPDATE plan_workouts SET completed = 0, linked_activity_id = NULL
     WHERE user_id = ? AND linked_activity_id IN (
-      SELECT id FROM activities WHERE user_id = ? AND source = 'strava' AND start_date >= ?
+      SELECT id FROM activities WHERE user_id = ? AND source = 'strava'
     )
-  `).run(userId, userId, windowStart);
+  `).run(userId, userId);
 
-  db.prepare(`
-    DELETE FROM activities WHERE user_id = ? AND source = 'strava' AND start_date >= ?
-  `).run(userId, windowStart);
+  db.prepare(`DELETE FROM activities WHERE user_id = ? AND source = 'strava'`).run(userId);
 
-  const res = await axios.get(`${STRAVA_BASE}/athlete/activities`, {
-    headers: { Authorization: `Bearer ${token}` },
-    params: { after: thirtyDaysAgo, per_page: 100 },
-  });
+  // Paginate through all Strava activities (max 200 per page)
+  const allActivities = [];
+  let page = 1;
+  while (true) {
+    const res = await axios.get(`${STRAVA_BASE}/athlete/activities`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { per_page: 200, page },
+    });
+    if (!res.data.length) break;
+    allActivities.push(...res.data);
+    if (res.data.length < 200) break; // last page
+    page++;
+  }
 
-  const runs = res.data.filter(a =>
+  const runs = allActivities.filter(a =>
     ['Run', 'VirtualRun', 'TrailRun'].includes(a.sport_type)
   );
 
