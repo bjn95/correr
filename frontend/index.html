@@ -800,6 +800,10 @@ async function loadPlan() {
 }
 
 function showMyPlan() {
+  if (!planWorkouts.length) {
+    startSurvey();
+    return;
+  }
   hide('survey-section');
   hide('generating');
   show('plan-section');
