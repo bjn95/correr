@@ -226,6 +226,13 @@ app.get('/api/profile', (req, res) => {
       targetRaceDate:  user.target_race_date || null,
       targetRaceTime:  user.target_race_time || null,
     },
+    pbs: {
+      mile:     user.pb_1mile    || null,
+      '5k':     user.pb_5k      || null,
+      '10k':    user.pb_10k     || null,
+      half:     user.pb_half    || null,
+      marathon: user.pb_marathon || null,
+    },
     stats: { totalRuns, completed },
   });
 });
@@ -235,11 +242,18 @@ app.patch('/api/profile', (req, res) => {
   const userId = req.body.userId || req.session.correrUserId;
   if (!userId) return res.status(401).json({ error: 'userId required' });
 
-  const { age, targetRaceName, targetRaceDate, targetRaceTime } = req.body;
+  const { age, targetRaceName, targetRaceDate, targetRaceTime,
+          pb1mile, pb5k, pb10k, pbHalf, pbMarathon } = req.body;
   db.prepare(`
-    UPDATE users SET age=?, target_race_name=?, target_race_date=?, target_race_time=?
+    UPDATE users SET
+      age=?, target_race_name=?, target_race_date=?, target_race_time=?,
+      pb_1mile=?, pb_5k=?, pb_10k=?, pb_half=?, pb_marathon=?
     WHERE id=?
-  `).run(age || null, targetRaceName || null, targetRaceDate || null, targetRaceTime || null, userId);
+  `).run(
+    age || null, targetRaceName || null, targetRaceDate || null, targetRaceTime || null,
+    pb1mile || null, pb5k || null, pb10k || null, pbHalf || null, pbMarathon || null,
+    userId
+  );
 
   res.json({ updated: true });
 });

@@ -88,6 +88,11 @@ for (const sql of [
   'ALTER TABLE users ADD COLUMN target_race_name TEXT',
   'ALTER TABLE users ADD COLUMN target_race_date TEXT',
   'ALTER TABLE users ADD COLUMN target_race_time TEXT',
+  'ALTER TABLE users ADD COLUMN pb_5k TEXT',
+  'ALTER TABLE users ADD COLUMN pb_10k TEXT',
+  'ALTER TABLE users ADD COLUMN pb_half TEXT',
+  'ALTER TABLE users ADD COLUMN pb_marathon TEXT',
+  'ALTER TABLE users ADD COLUMN pb_1mile TEXT',
 ]) {
   try { db.exec(sql); } catch (_) { /* column already exists */ }
 }
