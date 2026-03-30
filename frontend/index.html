@@ -667,7 +667,8 @@ async function checkUrlParams() {
     window.history.replaceState({}, '', window.location.pathname);
     showToast('Strava connected! Syncing your recent runs...', 'success');
     await loadStatus();
-    loadPlan();
+    await loadPlan();
+    loadProgress();
   }
   if (params.get('strava_error')) {
     showToast('Connection failed. Please try again.', 'error');
@@ -717,6 +718,9 @@ async function disconnectStrava() {
     connectionStatus.stravaActivities = 0;
     updateStatusChips();
     renderIntegrationCards(false, null, null);
+    // Reset progress section so stale runs/counts aren't shown
+    document.getElementById('recent-runs').innerHTML = '<div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Connect Strava to see your runs here.</div>';
+    document.getElementById('bar-chart').innerHTML = '';
     showToast('Strava disconnected', 'success');
     // Return to plan/home after disconnect
     hide('profile-section');
