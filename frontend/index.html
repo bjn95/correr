@@ -1239,7 +1239,7 @@ async function renderUpcoming() {
           <span class="run-emoji">${typeIcons[w.workout_type] || '&#127939;'}</span>
           <div>
             <div class="run-name">${w.name}</div>
-            <div class="run-meta">${w.scheduled_date}</div>
+            <div class="run-meta">Week ${w.week_number}, ${w.day_of_week}</div>
           </div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${Math.round(w.target_distance_km)}km</div>
         </div>`).join('') + '</div>'
