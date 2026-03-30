@@ -464,7 +464,15 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <button class="option-btn" onclick="selectOption(this,'q6')" data-value="health"><span class="opt-icon">&#10084;&#65039;</span><span><span class="opt-label">Health &amp; Wellbeing</span><span class="opt-desc">Feel great, reduce stress, stay active</span></span></button>
       <button class="option-btn" onclick="selectOption(this,'q6')" data-value="weight"><span class="opt-icon">&#9878;&#65039;</span><span><span class="opt-label">Weight Management</span><span class="opt-desc">Burn calories, body composition</span></span></button>
     </div>
-    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(6)">&larr; Back</button><button class="btn-next" id="next-q6" disabled onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(6)">&larr; Back</button><button class="btn-next" id="next-q6" disabled onclick="nextQuestion(6)">Continue &rarr;</button></div>
+  </div>
+
+  <div class="question-card" id="q7">
+    <span class="q-number">Question 07 / 07</span>
+    <div class="q-text">Give your plan a name.</div>
+    <div class="q-hint">We've suggested one based on your goal — change it to anything you like, e.g. "Barcelona Half Marathon".</div>
+    <input type="text" id="plan-name-input" class="profile-input" style="font-size:1rem;padding:.8rem 1rem;margin-bottom:.5rem" placeholder="My Training Plan" oninput="answers.planName=this.value">
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(7)">&larr; Back</button><button class="btn-next" onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
   </div>
 </section>
 
@@ -486,7 +494,8 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="plan-header">
     <div>
       <span class="section-kicker">Your Training Programme</span>
-      <div class="plan-title">Your <span id="plan-goal-title">Running</span> Plan</div>
+      <div class="plan-title" id="plan-title-display" onclick="startRename()" title="Click to rename" style="cursor:pointer">Your <span id="plan-goal-title">Running</span> Plan <span style="font-size:1rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400">&#9998;</span></div>
+      <input type="text" id="plan-title-input" class="profile-input" style="display:none;font-size:1.8rem;font-weight:700;padding:.4rem .6rem;margin-bottom:.3rem" onblur="finishRename()" onkeydown="if(event.key==='Enter')finishRename();if(event.key==='Escape')cancelRename()">
       <div class="plan-meta" id="plan-meta">Loading plan details...</div>
       <div class="plan-badges" id="plan-badges"></div>
     </div>
@@ -675,7 +684,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
-const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null };
+const answers = { q1: null, q2: null, q3: 3, q4: 20, q5: null, q6: null, planName: '' };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
@@ -798,10 +807,11 @@ function fillTestDefaults() {
   const kmSlider = document.getElementById('km-slider');
   kmSlider.value = 30;
   kmSlider.dispatchEvent(new Event('input'));
-  // Jump to q6 so user just needs to hit submit
-  ['q1','q2','q3','q4','q5'].forEach(q => document.getElementById(q).classList.remove('active'));
-  document.getElementById('q6').classList.add('active');
-  updateProgress(6);
+  // Jump to q7 (naming) so user just needs to hit submit
+  ['q1','q2','q3','q4','q5','q6'].forEach(q => document.getElementById(q).classList.remove('active'));
+  document.getElementById('q7').classList.add('active');
+  updateProgress(7);
+  prefillPlanName();
 }
 
 function selectOption(btn, q) {
@@ -816,7 +826,20 @@ function nextQuestion(n) {
   document.getElementById('q' + n).classList.remove('active');
   document.getElementById('q' + (n + 1)).classList.add('active');
   updateProgress(n + 1);
+  if (n + 1 === 7) prefillPlanName();
   window.scrollTo({ top: document.getElementById('survey-section').offsetTop - 80, behavior: 'smooth' });
+}
+
+function prefillPlanName() {
+  const goalNames = { '5k': '5K Race Plan', '10k': '10K Training Plan', 'half': 'Half Marathon Plan', 'marathon': 'Marathon Training Plan', 'general': 'Running Fitness Plan' };
+  const levelPrefix = { beginner: 'First ', experienced: 'Advanced ' };
+  const prefix = levelPrefix[answers.q2] || '';
+  const suggestion = prefix + (goalNames[answers.q1] || 'Training Plan');
+  const input = document.getElementById('plan-name-input');
+  if (!input.value) {
+    input.value = suggestion;
+    answers.planName = suggestion;
+  }
 }
 
 function prevQuestion(n) {
@@ -826,8 +849,8 @@ function prevQuestion(n) {
 }
 
 function updateProgress(n) {
-  document.getElementById('progress-count').textContent = n + ' of 6';
-  document.getElementById('progress-fill').style.width = ((n / 6) * 100) + '%';
+  document.getElementById('progress-count').textContent = n + ' of 7';
+  document.getElementById('progress-fill').style.width = ((n / 7) * 100) + '%';
 }
 
 function updateSlider(input, labelId, suffix) {
@@ -857,13 +880,14 @@ async function submitSurvey() {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        userId:   userId || undefined,
-        goal:     answers.q1,
-        level:    answers.q2,
-        days:     answers.q3,
-        km:       answers.q4,
-        timeline: answers.q5,
-        focus:    answers.q6,
+        userId:    userId || undefined,
+        goal:      answers.q1,
+        level:     answers.q2,
+        days:      answers.q3,
+        km:        answers.q4,
+        timeline:  answers.q5,
+        focus:     answers.q6,
+        planName:  answers.planName || undefined,
       }),
     });
 
@@ -932,6 +956,11 @@ async function editPlan() {
       ks.value = s.km;
       ks.dispatchEvent(new Event('input'));
     }
+    // Pre-fill plan name
+    if (data.summary?.planName) {
+      document.getElementById('plan-name-input').value = data.summary.planName;
+      answers.planName = data.summary.planName;
+    }
     // Reset to q1
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
     document.getElementById('q1').classList.add('active');
@@ -946,10 +975,7 @@ async function editPlan() {
 }
 
 function renderPlan(summary, workouts, byWeek) {
-  const goalMap = { '5k': '5K Race', '10k': '10K Race', 'half': 'Half Marathon', 'marathon': 'Full Marathon', 'general': 'Fitness' };
-
-  // Guess goal from first workout name or use fallback
-  document.getElementById('plan-goal-title').textContent = 'Running';
+  document.getElementById('plan-goal-title').textContent = summary.planName || 'Running';
   const startDate = workouts?.[0]?.scheduled_date
     ? new Date(workouts[0].scheduled_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'next Monday';
@@ -1420,6 +1446,45 @@ async function saveProfile() {
   }
   btn.innerHTML = 'Save Changes';
   btn.disabled = false;
+}
+
+// ??? PLAN RENAME ??????????????????????????????????????????????????????????
+let _renameOriginal = '';
+
+function startRename() {
+  const display = document.getElementById('plan-title-display');
+  const input = document.getElementById('plan-title-input');
+  _renameOriginal = document.getElementById('plan-goal-title').textContent;
+  input.value = _renameOriginal;
+  display.style.display = 'none';
+  input.style.display = 'block';
+  input.focus();
+  input.select();
+}
+
+function cancelRename() {
+  document.getElementById('plan-title-input').style.display = 'none';
+  document.getElementById('plan-title-display').style.display = 'block';
+}
+
+async function finishRename() {
+  const input = document.getElementById('plan-title-input');
+  const newName = input.value.trim() || _renameOriginal;
+  input.style.display = 'none';
+  document.getElementById('plan-goal-title').textContent = newName;
+  document.getElementById('plan-title-display').style.display = 'block';
+  if (newName === _renameOriginal) return;
+  try {
+    await fetch(`${API}/api/plan/rename`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId, planName: newName }),
+    });
+    showToast('Plan renamed', 'success');
+  } catch (e) {
+    showToast('Could not save name', 'error');
+  }
 }
 
 function goHome() {

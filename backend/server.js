@@ -60,22 +60,22 @@ app.use('/webhook', stravaRouter);
 // If userId is provided and exists, updates that user's plan instead of creating a new one
 // Returns: { userId, weeks, totalRuns, peakLongRun, startDate }
 app.post('/api/plan', (req, res) => {
-  const { goal, level, days, km, timeline, focus } = req.body;
+  const { goal, level, days, km, timeline, focus, planName } = req.body;
   const existingId = req.body.userId || req.session.correrUserId;
   const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
 
   let userId;
   if (existing) {
     db.prepare(`
-      UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_km=?, survey_timeline=?, survey_focus=?
+      UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_km=?, survey_timeline=?, survey_focus=?, plan_name=?
       WHERE id=?
-    `).run(goal, level, days || 3, km || 20, timeline, focus, existing.id);
+    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null, existing.id);
     userId = existing.id;
   } else {
     const result = db.prepare(`
-      INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(goal, level, days || 3, km || 20, timeline, focus);
+      INSERT INTO users (survey_goal, survey_level, survey_days, survey_km, survey_timeline, survey_focus, plan_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(goal, level, days || 3, km || 20, timeline, focus, planName || null);
     userId = result.lastInsertRowid;
   }
 
@@ -113,6 +113,7 @@ app.get('/api/plan', (req, res) => {
     peakLongRun: Math.max(...workouts.filter(w => w.workout_type === 'long').map(w => w.target_distance_km), 0),
     stravaConnected: !!user.strava_access_token,
     stravaAthleteName: user.strava_athlete_name,
+    planName: user.plan_name || null,
   };
 
   const survey = {
@@ -298,6 +299,15 @@ app.patch('/api/workout/:id/move', (req, res) => {
   ).all(userId, workout.week_number);
 
   res.json({ workouts: updated });
+});
+
+// PATCH /api/plan/rename — rename the user's plan
+app.patch('/api/plan/rename', (req, res) => {
+  const userId = req.body.userId || req.session.correrUserId;
+  if (!userId) return res.status(401).json({ error: 'userId required' });
+  const { planName } = req.body;
+  db.prepare('UPDATE users SET plan_name = ? WHERE id = ?').run(planName || null, userId);
+  res.json({ planName: planName || null });
 });
 
 // POST /api/workout/:id/toggle — mark a workout complete or incomplete
