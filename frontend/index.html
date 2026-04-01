@@ -822,7 +822,7 @@ let expandedWeeks = new Set();
 window.addEventListener('load', async () => {
   await checkUrlParams();
   if (userId) {
-    loadStatus();
+    await loadStatus();
     loadPlan();
   }
 });
