@@ -1657,8 +1657,14 @@ async function toggleWorkout(id) {
         body: JSON.stringify({ userId }),
       });
       if (!res.ok) throw new Error(await res.text());
-      // Re-fetch full plan so actual activity data (distance, pace, etc.) is up to date
+      // Re-fetch full plan but preserve the week the user is viewing
+      const savedWeek = currentWeek;
       await loadPlan();
+      if (currentWeek !== savedWeek) {
+        currentWeek = savedWeek;
+        renderWeekCarousel();
+        renderWeekProgressBar();
+      }
     } catch (e) {
       showToast('Could not update workout', 'error');
     }
