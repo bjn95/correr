@@ -242,25 +242,47 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .btn-connect-card.connected{background:var(--green)}
 .btn-connect-card.connected:hover{background:#155a38}
 /* Progress section */
-#progress-section{max-width:1000px;margin:0 auto;padding:4rem 2rem 6rem;display:none}
-.progress-grid{display:grid;grid-template-columns:3fr 2fr;gap:1.5rem}
-.progress-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem}
-.p-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;margin-bottom:1.2rem;letter-spacing:.5px}
-.bar-chart{display:flex;align-items:flex-end;gap:6px;height:160px;padding-bottom:.1rem}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.35rem;height:100%}
-.bar-stack{position:relative;width:100%;flex:1;display:flex;align-items:flex-end}
-.bar{position:absolute;bottom:0;left:0;right:0;border-radius:2px 2px 0 0;min-height:3px;transition:height .3s ease}
+#progress-section{max-width:1000px;margin:0 auto;padding:3.5rem 2rem 6rem;display:none}
+.progress-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
+.progress-back{font-size:.78rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:.4rem;transition:color .15s;font-weight:500}
+.progress-back:hover{color:var(--ink)}
+.progress-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem);line-height:1}
+.progress-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1.5rem}
+.progress-stat{background:var(--card);padding:1.2rem 1.5rem}
+.progress-stat-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--ink);letter-spacing:1px;line-height:1}
+.progress-stat-num em{color:var(--accent);font-style:normal;font-size:1rem}
+.progress-stat-lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:.3rem}
+.progress-grid{display:grid;grid-template-columns:3fr 2fr;gap:1.5rem;align-items:start}
+.progress-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem}
+.progress-card:last-child{margin-bottom:0}
+.p-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem}
+.p-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.5px}
+.p-card-legend{display:flex;align-items:center;gap:.5rem;font-size:.73rem;color:var(--muted)}
+.p-legend-item{display:flex;align-items:center;gap:.3rem}
+.p-legend-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.p-legend-swatch.actual{background:var(--accent)}
+.p-legend-swatch.planned{background:var(--border);border:1px solid var(--muted)}
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:160px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem;height:100%}
+.bar-stack{position:relative;width:100%;flex:1}
+.bar{position:absolute;bottom:0;left:0;right:0;border-radius:2px 2px 0 0;min-height:3px;transition:height .35s ease}
 .bar.planned{background:var(--border)}
-.bar.actual{background:var(--accent);opacity:.9}
-.bar-lbl{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);white-space:nowrap}
-.run-list{display:flex;flex-direction:column;gap:.6rem}
-.run-item{display:flex;align-items:center;gap:.8rem;padding:.75rem .9rem;background:var(--paper);border-radius:3px;border-left:2px solid transparent;transition:border-color .15s}
-.run-item:hover{border-left-color:var(--accent)}
-.run-date{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);white-space:nowrap}
-@media(max-width:640px){.progress-grid{grid-template-columns:1fr}}
-.run-emoji{font-size:1.2rem}
-.run-name{font-size:.9rem;font-weight:500}
-.run-meta{font-size:.75rem;color:var(--muted)}
+.bar.actual{background:var(--accent)}
+.bar-lbl{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);white-space:nowrap}
+.run-list{display:flex;flex-direction:column;gap:.5rem}
+.run-item{display:flex;align-items:center;gap:.85rem;padding:.8rem 1rem;background:var(--paper);border-radius:3px;transition:background .15s}
+.run-item:hover{background:var(--border)}
+.run-emoji{font-size:1.1rem;flex-shrink:0;width:1.5rem;text-align:center}
+.run-name{font-size:.88rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.run-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
+.run-stat-col{text-align:right;flex-shrink:0}
+.run-stat{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:var(--ink)}
+.run-pace{font-size:.68rem;color:var(--muted);margin-top:.05rem}
+.upcoming-item{display:flex;align-items:center;gap:.85rem;padding:.8rem 1rem;background:var(--paper);border-radius:3px;margin-bottom:.5rem;transition:background .15s}
+.upcoming-item:last-child{margin-bottom:0}
+.upcoming-item:hover{background:var(--border)}
+.upcoming-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
+@media(max-width:700px){.progress-grid{grid-template-columns:1fr}.progress-stats{grid-template-columns:repeat(2,1fr)}}
 .run-stat{margin-left:auto;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--ink)}
 /* Generating */
 #generating{text-align:center;padding:5rem 2rem;display:none;max-width:500px;margin:0 auto}
@@ -661,22 +683,27 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
 <!-- PROGRESS -->
 <section id="progress-section">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+  <div class="progress-header">
     <div>
-      <a href="#" onclick="showPlan();return false;" style="font-size:.78rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:.5rem">&larr; Back to plan</a>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem)">Progress Tracker</div>
+      <a href="#" onclick="showMyPlan();return false;" class="progress-back">&larr; Back to plan</a>
+      <div class="progress-title">Progress Tracker</div>
     </div>
     <button class="btn-secondary" onclick="syncNow()" id="sync-btn">&#8635; Sync Now</button>
   </div>
+
+  <div class="progress-stats" id="progress-stats"></div>
+
   <div class="progress-grid">
     <div>
-      <div class="progress-card" style="margin-bottom:1.5rem">
-        <div class="p-card-title">Weekly Mileage (km)</div>
-        <div class="bar-chart" id="bar-chart"></div>
-        <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
-          <span class="badge badge-accent">&#9679; Actual</span>
-          <span class="badge badge-ink" style="opacity:.6">&#9679; Planned</span>
+      <div class="progress-card">
+        <div class="p-card-header">
+          <div class="p-card-title">Weekly Mileage</div>
+          <div class="p-card-legend">
+            <span class="p-legend-item"><span class="p-legend-swatch actual"></span>Actual</span>
+            <span class="p-legend-item"><span class="p-legend-swatch planned"></span>Planned</span>
+          </div>
         </div>
+        <div class="bar-chart" id="bar-chart"></div>
       </div>
       <div class="progress-card">
         <div class="p-card-title">Upcoming Workouts</div>
@@ -686,7 +713,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div>
       <div class="progress-card">
         <div class="p-card-title">Recent Runs</div>
-        <div class="run-list" id="recent-runs"><div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Connect Strava to see your runs here.</div></div>
+        <div id="recent-runs"><div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Connect Strava to see your runs here.</div></div>
       </div>
     </div>
   </div>
@@ -1680,6 +1707,8 @@ async function showProgress() {
   hide('hero'); hide('how-it-works'); hide('plan-section');
   show('progress-section');
   scrollTop();
+  renderProgressStats();
+  renderUpcoming();
   await loadProgress();
 }
 
@@ -1704,7 +1733,7 @@ async function loadProgress() {
     } catch (_) {}
   }
 
-  renderUpcoming();
+  renderProgressStats();
 }
 
 // Mimics SQLite strftime('%Y-%W', date): Sunday-based week number
@@ -1749,47 +1778,73 @@ function renderBarChart(planned, actual) {
   }).join('');
 }
 
+function renderProgressStats() {
+  const el = document.getElementById('progress-stats');
+  if (!el || !planWorkouts.length) return;
+  const nonRest = planWorkouts.filter(w => w.workout_type !== 'rest');
+  const done    = nonRest.filter(w => w.completed);
+  const doneKm  = done.reduce((s, w) => s + (w.actual_distance_m ? w.actual_distance_m / 1000 : w.target_distance_km), 0);
+  const pct     = nonRest.length ? Math.round((done.length / nonRest.length) * 100) : 0;
+  el.innerHTML = [
+    { n: done.length,              u: 'runs',  lbl: 'Completed' },
+    { n: Math.round(doneKm),       u: 'km',    lbl: 'Logged' },
+    { n: pct,                      u: '%',     lbl: 'Plan Progress' },
+    { n: `${currentWeek}/${totalPlanWeeks}`, u: '', lbl: 'Current Week' },
+  ].map(s => `<div class="progress-stat">
+    <div class="progress-stat-num">${s.n}<em>${s.u}</em></div>
+    <div class="progress-stat-lbl">${s.lbl}</div>
+  </div>`).join('');
+}
+
 function renderRecentRuns(activities) {
+  const el = document.getElementById('recent-runs');
   if (!activities?.length) {
-    document.getElementById('recent-runs').innerHTML = '<div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">No runs synced yet. Connect Strava to import your recent runs.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">No runs synced yet. Connect Strava to import your recent runs.</div>';
     return;
   }
   const icons = { Run: '&#127939;', VirtualRun: '&#127939;', TrailRun: '&#127956;' };
-  document.getElementById('recent-runs').innerHTML = activities.slice(0, 8).map(a => {
+  el.innerHTML = '<div class="run-list">' + activities.slice(0, 8).map(a => {
     const dateLabel = a.start_date
       ? new Date(a.start_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
       : '';
-    return `
-    <div class="run-item">
+    return `<div class="run-item">
       <span class="run-emoji">${icons[a.sport_type] || '&#127939;'}</span>
       <div style="flex:1;min-width:0">
         <div class="run-name">${a.name}</div>
-        <div class="run-meta">${dateLabel ? dateLabel + ' &middot; ' : ''}${a.distance_km}km &middot; ${a.duration_formatted || ''}</div>
+        <div class="run-meta">${dateLabel}${dateLabel && a.distance_km ? ' &middot; ' : ''}${a.distance_km ? a.distance_km + 'km' : ''}${a.duration_formatted ? ' &middot; ' + a.duration_formatted : ''}</div>
       </div>
-      <div class="run-stat" style="text-align:right;white-space:nowrap">${a.pace_formatted || '--'}<span style="font-size:.65rem;color:var(--muted);font-family:'DM Sans'">/km</span></div>
+      <div class="run-stat-col">
+        <div class="run-stat">${a.pace_formatted || '--'}</div>
+        <div class="run-pace">/km</div>
+      </div>
     </div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 
-async function renderUpcoming() {
-  // Show next 4 upcoming (uncompleted) workouts from plan
-  try {
-    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
-    const data = await res.json();
-    const upcoming = (data.workouts || []).filter(w => !w.completed).slice(0, 4);
-    const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;' };
-    document.getElementById('upcoming-workouts').innerHTML = upcoming.length
-      ? '<div class="run-list">' + upcoming.map(w => `
-        <div class="run-item">
+function renderUpcoming() {
+  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;', strides: '&#9889;&#65039;' };
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = planWorkouts
+    .filter(w => w.workout_type !== 'rest' && !w.completed && (!w.scheduled_date || w.scheduled_date >= today))
+    .slice(0, 5);
+  document.getElementById('upcoming-workouts').innerHTML = upcoming.length
+    ? upcoming.map(w => {
+        const dateLabel = w.scheduled_date
+          ? new Date(w.scheduled_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+          : `Week ${w.week_number}, ${w.day_of_week}`;
+        return `<div class="upcoming-item">
           <span class="run-emoji">${typeIcons[w.workout_type] || '&#127939;'}</span>
-          <div>
+          <div style="flex:1;min-width:0">
             <div class="run-name">${w.name}</div>
-            <div class="run-meta">Week ${w.week_number}, ${w.day_of_week}</div>
+            <div class="upcoming-meta">${dateLabel}</div>
           </div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${Math.round(w.target_distance_km)}km</div>
-        </div>`).join('') + '</div>'
-      : '<div style="color:var(--muted);font-size:.9rem">No upcoming workouts found.</div>';
-  } catch (e) {}
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem">
+            <span class="workout-type type-${w.workout_type}" style="font-size:.6rem;padding:.12rem .4rem">${w.workout_type}</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem">${Math.round(w.target_distance_km)}km</span>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:.9rem;padding:.25rem 0">All caught up — no upcoming workouts.</div>';
 }
 
 async function syncNow() {
@@ -1847,12 +1902,13 @@ function generateDemoWorkouts() {
 function renderDemoProgress() {
   const weeks = Array.from({length:8},(_,i)=>({week_number:i+1,km:20+i*3}));
   renderBarChart(weeks, []);
+  renderProgressStats();
+  renderUpcoming();
   document.getElementById('recent-runs').innerHTML = `
     <div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">
       Connect Strava to see your run history here.<br><br>
       <a href="#" onclick="if(userId)location.href='${API}/auth/strava/connect?userId='+userId" style="color:var(--accent);font-weight:600">Connect Strava &rarr;</a>
     </div>`;
-  document.getElementById('upcoming-workouts').innerHTML = `<div style="color:var(--muted);font-size:.9rem">Build your plan to see upcoming workouts.</div>`;
 }
 
 // ??? PROFILE ?????????????????????????????????????????????????????????????????
