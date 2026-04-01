@@ -159,7 +159,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .day-card.active-day{border-color:var(--accent)}
 .day-card.rest-day{opacity:.5;cursor:default}
 .day-card:not(.rest-day):hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
-.day-name{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
+.day-name{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;line-height:1.2}
+.day-date{display:block;font-size:.62rem;font-family:'DM Sans',sans-serif;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);opacity:.8;margin-top:.2rem}
+.day-card .workout-type{display:inline-block;padding:.15rem .45rem;font-size:.62rem;letter-spacing:.3px}
 .day-icon{font-size:1.4rem;margin-bottom:.4rem}
 .day-type{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
 .day-km{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--accent);margin-top:.3rem}
@@ -1327,8 +1329,18 @@ function renderPlan(summary, workouts, byWeek, raceDate) {
   planByWeek = byWeek || {};
   planRaceDate = raceDate || null;
   totalPlanWeeks = summary.weeks || 1;
+
+  // Auto-detect the current week based on today's date vs plan start
   currentWeek = 1;
-  expandedWeeks = new Set([1]);
+  if (workouts && workouts.length > 0) {
+    const firstDate = workouts[0].scheduled_date;
+    if (firstDate) {
+      const startMs = new Date(firstDate + 'T00:00:00Z').getTime();
+      const weeksElapsed = Math.floor((Date.now() - startMs) / (7 * 24 * 60 * 60 * 1000));
+      currentWeek = Math.max(1, Math.min(totalPlanWeeks, weeksElapsed + 1));
+    }
+  }
+  expandedWeeks = new Set([currentWeek]);
 
   renderWeekProgressBar();
   renderIntegrationCards(connectionStatus.strava, connectionStatus.stravaName, connectionStatus.stravapic);
@@ -1384,6 +1396,16 @@ function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
   }
 }
 
+const DAY_OFFSETS = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+function weekMonday(weekNum) {
+  const ww = planByWeek[weekNum] || planByWeek[String(weekNum)] || [];
+  const first = ww.find(x => x.scheduled_date && x.day_of_week in DAY_OFFSETS);
+  if (!first) return null;
+  const d = new Date(first.scheduled_date + 'T00:00:00Z');
+  return new Date(d.getTime() - DAY_OFFSETS[first.day_of_week] * 86400000);
+}
+
 function renderWeekProgressBar() {
   const bar = document.getElementById('week-progress-bar');
   if (!bar) return;
@@ -1393,7 +1415,10 @@ function renderWeekProgressBar() {
     const nonRest = weekWorkouts.filter(x => x.workout_type !== 'rest');
     const allDone = nonRest.length > 0 && nonRest.every(x => x.completed);
     const cls = allDone ? 'done' : w === currentWeek ? 'current' : '';
-    return `<div class="week-seg ${cls}" onclick="jumpToWeek(${w})" title="Week ${w} · ${weekPhaseLabel(w, totalPlanWeeks)}"></div>`;
+    const mon = weekMonday(w);
+    const fmtD = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const dateHint = mon ? ` · ${fmtD(mon)}–${fmtD(new Date(mon.getTime() + 6 * 86400000))}` : '';
+    return `<div class="week-seg ${cls}" onclick="jumpToWeek(${w})" title="Week ${w} · ${weekPhaseLabel(w, totalPlanWeeks)}${dateHint}"></div>`;
   }).join('');
 }
 
@@ -1428,10 +1453,16 @@ function renderWeekCarousel() {
   const byDay = {};
   for (const w of workouts) byDay[w.day_of_week] = w;
 
+  // Derive the Monday of this week so we can label each day with its date
+  const mon = weekMonday(currentWeek);
+  const fmtD = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
   document.getElementById('week-grid').innerHTML = ALL_DAYS.map(day => {
+    const offset = DAY_OFFSETS[day];
+    const dateLabel = mon ? fmtD(new Date(mon.getTime() + offset * 86400000)) : '';
     const w = byDay[day];
     const dropAttrs = `ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'${day}')"`;
-    if (!w) return `<div class="day-card rest-day" ${dropAttrs}><div class="day-name">${day}</div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
+    if (!w) return `<div class="day-card rest-day" ${dropAttrs}><div class="day-name">${day}<span class="day-date">${dateLabel}</span></div><div class="day-icon">&#128564;</div><div class="day-type">Rest</div></div>`;
     const hasActual = w.completed && w.actual_distance_m;
     const actualKm = hasActual ? (w.actual_distance_m / 1000).toFixed(1) : null;
     const plannedKm = Math.round(w.target_distance_km);
@@ -1443,9 +1474,9 @@ function renderWeekCarousel() {
       ${dropAttrs}
       onclick="toggleWorkout(${w.id})">
       ${w.completed ? '<div class="day-check-mark">&#10003;</div>' : ''}
-      <div class="day-name">${day}</div>
+      <div class="day-name">${day}<span class="day-date">${dateLabel}</span></div>
       <div class="day-icon">${typeIcons[w.workout_type] || '&#127939;'}</div>
-      <div class="day-type">${w.workout_type}</div>
+      <div class="day-type workout-type type-${w.workout_type}">${w.workout_type}</div>
       ${hasActual
         ? `<div class="day-actual-km">${actualKm}km</div><div class="day-planned-km">${plannedKm}km plan</div>`
         : `<div class="day-km">${plannedKm}km</div>`}
