@@ -1768,8 +1768,10 @@ function renderWeekProgressBar() {
 
 function jumpToWeek(w) {
   currentWeek = w;
+  expandedWeeks = new Set([currentWeek]);
   renderWeekCarousel();
   renderWeekProgressBar();
+  renderWorkoutList(planWorkouts);
   document.getElementById('week-grid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -1833,8 +1835,10 @@ function changeWeek(dir) {
   const next = currentWeek + dir;
   if (next < 1 || next > totalPlanWeeks) return;
   currentWeek = next;
+  expandedWeeks = new Set([currentWeek]);
   renderWeekCarousel();
   renderWeekProgressBar();
+  renderWorkoutList(planWorkouts);
 }
 
 function renderWorkoutList(workouts) {
