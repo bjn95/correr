@@ -4,19 +4,12 @@
 // All other session distances are derived as fixed ratios of the long run,
 // so the hierarchy  long > easy >= quality  is structurally guaranteed.
 //
-// Long run progression:
-//   - Grows from startLong (based on user's recent fitness) to peakLong
-//   - Every 4th build week is a recovery week (~88% of previous)
-//   - 3-week taper for race plans (80% → 60% → shakeout)
-//
-// Session type progression (Hal Higdon / Jack Daniels methodology):
-//   Early build  (0–35%):  fartlek + progression  — intro to faster work
-//   Mid build   (35–65%):  hill repeats + tempo   — strength & threshold
-//   Late build    (65%+):  goal-specific intervals + tempo — sharpening
-//   Taper (final 3 weeks): easy + short tempo only
-//   Race week:             5km shakeout (2 days before) + Race Day entry
+// Session types and descriptions come from coachingData.js (pre-computed
+// coaching knowledge). The structural algorithm here handles distances,
+// paces, dates, and long-run progression.
 
-const db = require('./db');
+const db           = require('./db');
+const coachingData = require('./coachingData');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -94,6 +87,7 @@ function buildOrUpdatePlan(userId, survey) {
     paceDistance  = null,
     paceTimeSecs  = null,
     raceDate      = null,
+    planName      = null,
   } = survey;
 
   // ── Plan length ───────────────────────────────────────────────────────────
@@ -131,23 +125,34 @@ function buildOrUpdatePlan(userId, survey) {
   const taperWeeks = isRacePlan ? 3 : 2;
   const buildWeeksCount = Math.max(weeks - taperWeeks, 1);
 
+  // Recovery weeks: any build week where the long run is less than the previous week
+  const recoveryWeeks = new Set();
+  for (let i = 1; i < longRunKms.length; i++) {
+    if (longRunKms[i] < longRunKms[i - 1]) recoveryWeeks.add(i + 1); // 1-based week num
+  }
+
   for (let w = 1; w <= weeks; w++) {
     const weeksFromEnd = weeks - w;
     const buildPhase   = clamp((w - 1) / buildWeeksCount, 0, 1);
     const isRaceWeek   = weeksFromEnd === 0 && isRacePlan;
+    const isRecovery   = recoveryWeeks.has(w);
 
     const sessions = buildWeekSessions({
       weekNum: w, totalWeeks: weeks, days,
       longKm: longRunKms[w - 1],
       targetPaces, goal, planStart: startDate,
       preferredDays, longRunDay, isRacePlan, raceDate,
-      buildPhase, weeksFromEnd, isRaceWeek,
+      buildPhase, weeksFromEnd, isRaceWeek, isRecovery,
     });
 
     for (const s of sessions) {
       insert.run(userId, w, s.dayOfWeek, s.type, s.name, s.description,
                  s.distanceKm, s.paceMinKm, s.date);
     }
+  }
+
+  if (planName) {
+    db.prepare('UPDATE users SET plan_name = ? WHERE id = ?').run(planName, userId);
   }
 
   const totalRuns = db.prepare(
@@ -217,7 +222,7 @@ function buildLongRunSchedule(startLong, peakLong, totalWeeks, isRacePlan) {
 
 function buildWeekSessions({ weekNum, totalWeeks, days, longKm, targetPaces, goal,
                               planStart, preferredDays, longRunDay, isRacePlan, raceDate,
-                              buildPhase, weeksFromEnd, isRaceWeek }) {
+                              buildPhase, weeksFromEnd, isRaceWeek, isRecovery }) {
 
   // Pace setup — quality sessions ease off in early weeks, sharpen as plan matures
   const tempoSlack     = Math.round((1 - buildPhase) * 20);
@@ -227,6 +232,7 @@ function buildWeekSessions({ weekNum, totalWeeks, days, longKm, targetPaces, goa
   const paceMap = {
     easy:        s2m(targetPaces.easy),
     long:        s2m(targetPaces.long),
+    strides:     s2m(targetPaces.easy),
     tempo:       s2m(targetPaces.tempo     + tempoSlack),
     intervals:   s2m(targetPaces.intervals + intervalsSlack),
     fartlek:     s2m(targetPaces.easy),
@@ -277,16 +283,18 @@ function buildWeekSessions({ weekNum, totalWeeks, days, longKm, targetPaces, goa
     long:        safeLongKm,
     tempo:       qualityKm,
     intervals:   Math.max(4, Math.round(qualityKm * 0.90)),
+    strides:     easyKm,
     fartlek:     easyKm,
     hills:       qualityKm,
     progression: easyKm,
     cruise:      qualityKm,
   };
 
-  // Quality session types for this phase
+  // Session types for non-long slots — from coaching data
   const nonLongDays  = activeDays.filter(d => d !== effectiveLongDay);
   const isTaper      = weeksFromEnd <= 2;
-  const sessionTypes = resolveQualityTypes(nonLongDays.length, buildPhase, goal, isTaper);
+  const phaseName    = coachingData.buildPhaseToName(buildPhase, isTaper);
+  const sessionTypes = coachingData.resolveSessionTypes(nonLongDays.length, phaseName, goal, isRecovery);
 
   // Build session list
   const weekStart = addDays(planStart, (weekNum - 1) * 7);
@@ -294,13 +302,14 @@ function buildWeekSessions({ weekNum, totalWeeks, days, longKm, targetPaces, goa
   let   nlIdx     = 0;
 
   for (const day of activeDays) {
-    const type    = day === effectiveLongDay ? 'long' : (sessionTypes[nlIdx++] || 'easy');
-    const dayOff  = ALL_DAYS.indexOf(day);
+    const type   = day === effectiveLongDay ? 'long' : (sessionTypes[nlIdx++] || 'easy');
+    const dayOff = ALL_DAYS.indexOf(day);
+    const effectivePhaseName = type === 'long' ? phaseName : phaseName;
     sessions.push({
       dayOfWeek:   day,
       type,
       name:        sessionName(type, distMap[type], goal),
-      description: sessionDescription(type, distMap[type], paceMap[type], goal),
+      description: buildDescription(type, effectivePhaseName, distMap[type], paceMap[type], goal),
       distanceKm:  distMap[type],
       paceMinKm:   paceMap[type],
       date:        addDays(weekStart, dayOff),
@@ -350,111 +359,78 @@ function buildRaceWeekSessions({ weekNum, planStart, raceDate, goal, paceMap }) 
   return sessions;
 }
 
-// ── Quality session type resolver ─────────────────────────────────────────────
-
-function resolveQualityTypes(nonLongCount, buildPhase, goal, isTaper) {
-  let speedType, tempoType;
-
-  if (isTaper) {
-    speedType = 'easy';
-    tempoType = 'tempo';
-  } else if (buildPhase < 0.35) {
-    speedType = 'fartlek';
-    tempoType = 'progression';
-  } else if (buildPhase < 0.65) {
-    speedType = 'hills';
-    tempoType = 'tempo';
-  } else {
-    speedType = goal === 'marathon' ? 'cruise' : 'intervals';
-    tempoType = 'tempo';
-  }
-
-  const t = {
-    1: [speedType],
-    2: ['easy', tempoType],
-    3: ['easy', speedType, tempoType],
-    4: ['easy', speedType, 'easy', tempoType],
-    5: ['easy', speedType, 'easy', tempoType, 'easy'],
-  };
-  return t[clamp(nonLongCount, 1, 5)] || t[2];
-}
-
 // ── Session naming ────────────────────────────────────────────────────────────
 
 function sessionName(type, km, goal) {
   switch (type) {
-    case 'easy':        return `Easy Run ${km}km`;
-    case 'long':        return `Long Run ${km}km`;
-    case 'tempo':       return `Tempo Run ${km}km`;
-    case 'progression': return `Progression Run ${km}km`;
-    case 'fartlek':     return `Fartlek ${km}km`;
-    case 'hills':       return `Hill Repeats ${km}km`;
-    case 'cruise':      return `Cruise Intervals ${km}km`;
+    case 'easy':        return `Easy Run — ${km}km`;
+    case 'long':        return `Long Run — ${km}km`;
+    case 'strides':     return `Easy Run + Strides — ${km}km`;
+    case 'tempo':       return `Tempo Run — ${km}km`;
+    case 'progression': return `Progression Run — ${km}km`;
+    case 'fartlek':     return `Fartlek — ${km}km`;
+    case 'hills':       return `Hill Repeats — ${km}km`;
+    case 'cruise':      return `Cruise Intervals — ${km}km`;
     case 'intervals':
-      return goal === '5k'   ? `400m Intervals ${km}km`
-           : goal === '10k'  ? `800m Intervals ${km}km`
-           : goal === 'half' ? `1000m Intervals ${km}km`
-           :                   `Intervals ${km}km`;
-    default: return `Run ${km}km`;
+      return goal === '5k'  ? `400m Intervals — ${km}km`
+           : goal === '10k' ? `800m Intervals — ${km}km`
+           :                  `1km Intervals — ${km}km`;
+    default: return `Run — ${km}km`;
   }
 }
 
 // ── Session descriptions ──────────────────────────────────────────────────────
-
-function sessionDescription(type, km, paceMinKm, goal) {
+//
+// Combines a coaching template from coachingData.js with algorithmically
+// computed specifics (rep counts, pace references, long run phase notes).
+//
+function buildDescription(type, phaseName, km, paceMinKm, goal) {
   const p = paceMinKm ? formatPace(paceMinKm) : null;
-  const pace = p ? ` at ${p}/km` : '';
+
+  // Long run: coaching template + phase-specific progression note
+  if (type === 'long') {
+    const phaseNote = coachingData.LONG_RUN_PHASE_NOTES[phaseName]
+      || coachingData.LONG_RUN_PHASE_NOTES.base;
+    return phaseNote;
+  }
+
+  // For interval/structured sessions, compute rep counts and append to template
+  const template = coachingData.getSessionDescription(type, phaseName);
 
   switch (type) {
-    case 'easy':
-      return `Easy conversational pace${p ? ` — target ${p}/km` : ''}. You should be able to speak in full sentences throughout. If you feel yourself working hard, slow down.`;
-
-    case 'long':
-      return `Long easy run${p ? ` — target ${p}/km` : ''}. Time on feet, not pace, is the goal. Run relaxed and consistent. Bring water or plan your route past fountains.`;
-
-    case 'tempo': {
-      const block = Math.max(2, Math.round(km * 0.60));
-      return `Warm up 10 min easy. Run ${block}km at tempo pace${p ? ` (${p}/km)` : ''} — comfortably hard, able to say only a few words. Cool down 10 min easy. Builds your lactate threshold.`;
+    case 'intervals': {
+      const repDist = goal === '5k' ? 400 : goal === '10k' ? 800 : 1000;
+      const reps    = clamp(Math.round((km * 1000) / (repDist + 200)), 3, 8);
+      const paceStr = p ? ` at ${p}/km` : '';
+      return (template || '') + ` ${reps} × ${repDist}m${paceStr} with full standing recovery between reps.`;
     }
 
-    case 'progression':
-      return `Start at easy pace and build gradually, finishing the last 15–20 min at tempo effort${p ? ` (~${p}/km)` : ''}. Teaches you to run strong when your legs are tired.`;
+    case 'tempo': {
+      const block   = Math.max(2, Math.round(km * 0.60));
+      const paceStr = p ? ` (target: ${p}/km)` : '';
+      return (template || '') + ` Tempo block: ${block}km${paceStr}.`;
+    }
 
     case 'fartlek': {
-      const reps = clamp(Math.round((km - 2) * 1.5), 4, 10);
-      return `Warm up 10 min easy. Run ${reps} × 1 min hard / 2 min easy${p ? `. Hard pace ~${p}/km` : ''}. Cool down 5–10 min easy. Keep hard efforts controlled, not an all-out sprint.`;
+      const reps    = clamp(Math.round((km - 2) * 1.5), 4, 10);
+      const paceStr = p ? ` Hard efforts ~${p}/km.` : '';
+      return (template || '') + ` ${reps} × 1 min hard / 2 min easy.${paceStr}`;
     }
 
     case 'hills': {
       const reps = clamp(Math.round(km * 1.1), 5, 12);
-      return `Find a moderate hill (5–8% grade, 60–90 sec to climb). Warm up 10 min on flat. Run ${reps} × hard uphill effort — drive your arms, stay tall. Jog back down as full recovery. Cool down 10 min easy.`;
-    }
-
-    case 'intervals': {
-      switch (goal) {
-        case '5k': {
-          const r = clamp(Math.round(km * 1000 / 600), 4, 14);
-          return `Warm up 10–15 min easy. Run ${r} × 400m${p ? ` at ${p}/km` : ''} with 200m easy jog recovery. Cool down 10 min easy. Focus on consistent splits — don't sprint the first few.`;
-        }
-        case '10k': {
-          const r = clamp(Math.round(km * 1000 / 1100), 3, 8);
-          return `Warm up 10–15 min easy. Run ${r} × 800m${p ? ` at ${p}/km` : ''} with 400m easy jog recovery. Cool down 10 min easy. 800s are the cornerstone of 10K fitness — hold the pace even when it gets hard.`;
-        }
-        default: {
-          const r = clamp(Math.round(km * 1000 / 1400), 3, 6);
-          return `Warm up 10–15 min easy. Run ${r} × 1000m${p ? ` at ${p}/km` : ''} with 400m easy jog recovery. Cool down 10 min easy. These build the sustained speed needed at half marathon effort.`;
-        }
-      }
+      return (template || '') + ` ${reps} reps.`;
     }
 
     case 'cruise': {
-      const blocks = clamp(Math.round(km / 3), 2, 4);
-      const bKm    = Math.round((km * 0.70) / blocks * 10) / 10;
-      return `Warm up 10–15 min easy. Run ${blocks} × ${bKm}km${p ? ` at ${p}/km` : ''} with 90 sec easy recovery between blocks. Cool down easy. Threshold blocks train you to sustain marathon pace for extended periods.`;
+      const blocks  = clamp(Math.round(km / 3), 2, 4);
+      const bKm     = Math.round((km * 0.70) / blocks * 10) / 10;
+      const paceStr = p ? ` at ${p}/km` : '';
+      return (template || '') + ` ${blocks} × ${bKm}km${paceStr} with 90 sec recovery.`;
     }
 
     default:
-      return `Run ${km}km${pace}.`;
+      return template || (p ? `Run at ${p}/km.` : `${km}km run.`);
   }
 }
 

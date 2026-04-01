@@ -9,7 +9,6 @@ const cors    = require('cors');
 const session = require('express-session');
 const db      = require('./db');
 const { buildOrUpdatePlan } = require('./plan');
-const { generatePlanWithClaude } = require('./ai-plan');
 
 const { router: stravaRouter, matchAllActivitiesToPlan } = require('./routes/strava');
 
@@ -60,7 +59,7 @@ app.use('/webhook', stravaRouter);
 // Body: { goal, longestRun, days, timeline, userId? }
 // If userId is provided and exists, updates that user's plan instead of creating a new one
 // Returns: { userId, weeks, totalRuns, peakLongRun, startDate }
-app.post('/api/plan', async (req, res) => {
+app.post('/api/plan', (req, res) => {
   const { goal, longestRun, days, timeline, planName, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate } = req.body;
   const existingId = req.body.userId || req.session.correrUserId;
   const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
@@ -87,22 +86,7 @@ app.post('/api/plan', async (req, res) => {
   }
 
   req.session.correrUserId = userId;
-
-  const survey = { goal, longestRun, days, timeline, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, planName };
-
-  let plan;
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
-
-  if (hasApiKey) {
-    try {
-      plan = await generatePlanWithClaude(userId, survey);
-    } catch (err) {
-      console.error('Claude plan generation failed, falling back to rule-based builder:', err.message);
-      plan = buildOrUpdatePlan(userId, survey);
-    }
-  } else {
-    plan = buildOrUpdatePlan(userId, survey);
-  }
+  const plan = buildOrUpdatePlan(userId, { goal, longestRun, days, timeline, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, planName });
 
   res.json({ userId, ...plan });
 });
