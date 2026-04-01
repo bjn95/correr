@@ -243,17 +243,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .btn-connect-card.connected:hover{background:#155a38}
 /* Progress section */
 #progress-section{max-width:1000px;margin:0 auto;padding:4rem 2rem 6rem;display:none}
-.progress-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem}
+.progress-grid{display:grid;grid-template-columns:3fr 2fr;gap:1.5rem}
 .progress-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem}
 .p-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;margin-bottom:1.2rem;letter-spacing:.5px}
-.bar-chart{display:flex;align-items:flex-end;gap:.5rem;height:120px}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.4rem}
-.bar{width:100%;border-radius:2px 2px 0 0;background:var(--border);position:relative;min-height:4px}
-.bar.actual{background:var(--accent)}
-.bar.planned{background:repeating-linear-gradient(-45deg,var(--border),var(--border) 2px,transparent 2px,transparent 6px)}
-.bar-lbl{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)}
-.run-list{display:flex;flex-direction:column;gap:.7rem}
-.run-item{display:flex;align-items:center;gap:.8rem;padding:.8rem;background:var(--paper);border-radius:3px}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:160px;padding-bottom:.1rem}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.35rem;height:100%}
+.bar-stack{position:relative;width:100%;flex:1;display:flex;align-items:flex-end}
+.bar{position:absolute;bottom:0;left:0;right:0;border-radius:2px 2px 0 0;min-height:3px;transition:height .3s ease}
+.bar.planned{background:var(--border)}
+.bar.actual{background:var(--accent);opacity:.9}
+.bar-lbl{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);white-space:nowrap}
+.run-list{display:flex;flex-direction:column;gap:.6rem}
+.run-item{display:flex;align-items:center;gap:.8rem;padding:.75rem .9rem;background:var(--paper);border-radius:3px;border-left:2px solid transparent;transition:border-color .15s}
+.run-item:hover{border-left-color:var(--accent)}
+.run-date{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);white-space:nowrap}
+@media(max-width:640px){.progress-grid{grid-template-columns:1fr}}
 .run-emoji{font-size:1.2rem}
 .run-name{font-size:.9rem;font-weight:500}
 .run-meta{font-size:.75rem;color:var(--muted)}
@@ -659,7 +663,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <section id="progress-section">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
     <div>
-      <span class="section-kicker">Your Training</span>
+      <a href="#" onclick="showPlan();return false;" style="font-size:.78rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:.5rem">&larr; Back to plan</a>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,4vw,3rem)">Progress Tracker</div>
     </div>
     <button class="btn-secondary" onclick="syncNow()" id="sync-btn">&#8635; Sync Now</button>
@@ -1680,30 +1684,22 @@ async function showProgress() {
 }
 
 async function loadProgress() {
-  // Fetch both in parallel; network errors on one must not block the other
-  let progressRes, activitiesRes;
-  try {
-    [progressRes, activitiesRes] = await Promise.all([
-      fetch(`${API}/api/progress?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
-      fetch(`${API}/api/activities?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
-    ]);
-  } catch (_) {
-    // Network failure — leave existing content in place
-    return;
-  }
+  // Use allSettled so a failure on one endpoint never blocks the other
+  const [progressResult, activitiesResult] = await Promise.allSettled([
+    fetch(`${API}/api/progress?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
+    fetch(`${API}/api/activities?userId=${userId}`, { credentials: 'include', cache: 'no-store' }),
+  ]);
 
-  // Render bar chart — failures here must not block the runs list
-  if (progressRes.ok) {
+  if (progressResult.status === 'fulfilled' && progressResult.value.ok) {
     try {
-      const progress = await progressRes.json();
+      const progress = await progressResult.value.json();
       renderBarChart(progress.planned || [], progress.actual || []);
     } catch (_) {}
   }
 
-  // Render recent runs — always attempt this independently
-  if (activitiesRes.ok) {
+  if (activitiesResult.status === 'fulfilled' && activitiesResult.value.ok) {
     try {
-      const activities = await activitiesRes.json();
+      const activities = await activitiesResult.value.json();
       renderRecentRuns(activities);
     } catch (_) {}
   }
@@ -1711,17 +1707,43 @@ async function loadProgress() {
   renderUpcoming();
 }
 
+// Mimics SQLite strftime('%Y-%W', date): Sunday-based week number
+function sqliteYearWeek(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const year = d.getUTCFullYear();
+  const jan1 = new Date(Date.UTC(year, 0, 1));
+  const dayOfYear = Math.round((d.getTime() - jan1.getTime()) / 86400000);
+  const weekNum = Math.floor((dayOfYear + jan1.getUTCDay()) / 7);
+  return `${year}-${String(weekNum).padStart(2, '0')}`;
+}
+
 function renderBarChart(planned, actual) {
-  const maxKm = Math.max(...planned.map(p => p.km), ...actual.map(a => a.km), 10);
-  const planByWeek = {};
-  for (const p of (planned || [])) planByWeek[p.week_number] = p.km;
-  const weeks = planned?.slice(0, 8) || [];
+  // Build week_key → actual km map
+  const actualMap = {};
+  for (const a of (actual || [])) actualMap[a.week_key] = a.km;
+
+  // Map each plan week_number to a SQLite-style week_key using scheduled_dates
+  const weekKeyForNum = {};
+  for (const w of planWorkouts) {
+    if (w.scheduled_date && !weekKeyForNum[w.week_number]) {
+      weekKeyForNum[w.week_number] = sqliteYearWeek(w.scheduled_date);
+    }
+  }
+
+  const weeks = (planned || []).slice(0, 12);
+  const allKm = weeks.map(p => p.km).concat(weeks.map(p => actualMap[weekKeyForNum[p.week_number]] || 0));
+  const maxKm = Math.max(...allKm, 10);
 
   document.getElementById('bar-chart').innerHTML = weeks.map(p => {
-    const actKm = 0; // actual would be matched by date
-    const planH = Math.round((p.km / maxKm) * 110);
+    const wKey = weekKeyForNum[p.week_number];
+    const actKm = wKey ? (actualMap[wKey] || 0) : 0;
+    const planPct = Math.round((p.km / maxKm) * 100);
+    const actPct  = actKm > 0 ? Math.round((actKm / maxKm) * 100) : 0;
     return `<div class="bar-col">
-      <div class="bar planned" style="height:${planH}px" title="Planned: ${p.km}km"></div>
+      <div class="bar-stack">
+        <div class="bar planned" style="height:${planPct}%" title="W${p.week_number} planned: ${p.km}km"></div>
+        ${actPct > 0 ? `<div class="bar actual" style="height:${actPct}%" title="W${p.week_number} actual: ${actKm}km"></div>` : ''}
+      </div>
       <span class="bar-lbl">W${p.week_number}</span>
     </div>`;
   }).join('');
@@ -1733,16 +1755,20 @@ function renderRecentRuns(activities) {
     return;
   }
   const icons = { Run: '&#127939;', VirtualRun: '&#127939;', TrailRun: '&#127956;' };
-  document.getElementById('recent-runs').innerHTML = activities.slice(0, 6).map(a => `
+  document.getElementById('recent-runs').innerHTML = activities.slice(0, 8).map(a => {
+    const dateLabel = a.start_date
+      ? new Date(a.start_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      : '';
+    return `
     <div class="run-item">
       <span class="run-emoji">${icons[a.sport_type] || '&#127939;'}</span>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="run-name">${a.name}</div>
-        <div class="run-meta">${a.distance_km}km &middot; ${a.duration_formatted || ''}</div>
+        <div class="run-meta">${dateLabel ? dateLabel + ' &middot; ' : ''}${a.distance_km}km &middot; ${a.duration_formatted || ''}</div>
       </div>
-      <div class="run-stat">${a.pace_formatted || '--'}<span style="font-size:.65rem;color:var(--muted);font-family:'DM Sans'">/km</span></div>
-    </div>
-  `).join('');
+      <div class="run-stat" style="text-align:right;white-space:nowrap">${a.pace_formatted || '--'}<span style="font-size:.65rem;color:var(--muted);font-family:'DM Sans'">/km</span></div>
+    </div>`;
+  }).join('');
 }
 
 async function renderUpcoming() {
