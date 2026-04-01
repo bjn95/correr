@@ -105,9 +105,14 @@ h1 em{color:var(--accent);font-style:normal}
 .opt-label{font-weight:500}
 .opt-desc{font-size:.8rem;color:var(--muted);display:block;font-weight:400}
 .option-btn.selected .opt-desc{color:inherit;opacity:.7}
-.pace-time-input{width:64px!important;padding:.5rem .6rem!important;text-align:center;font-size:1rem}
-.pace-sep{font-size:1.1rem;color:var(--muted);font-weight:600}
-.pace-preview{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--accent);min-height:1.4em}
+.pace-preview{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent);min-height:1.4em}
+.time-inputs{display:flex;align-items:flex-end;gap:.5rem;margin-bottom:.75rem}
+.time-unit{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.time-unit input{width:66px;padding:.65rem .4rem;text-align:center;font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:500;border:2px solid var(--border);border-radius:3px;background:var(--paper);color:var(--ink);transition:border-color .15s;-moz-appearance:textfield;-webkit-appearance:none}
+.time-unit input::-webkit-inner-spin-button,.time-unit input::-webkit-outer-spin-button{-webkit-appearance:none}
+.time-unit input:focus{outline:none;border-color:var(--ink)}
+.time-unit-label{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.time-sep{font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:400;color:var(--muted);padding-bottom:1.4rem;line-height:1}
 .day-select-grid{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.5rem}
 .day-btn{padding:.6rem 1rem;border:2px solid var(--border);border-radius:3px;background:transparent;color:var(--ink);cursor:pointer;font-size:.9rem;font-weight:600;min-width:58px;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif}
 .day-btn:hover:not(.selected){border-color:var(--ink)}
@@ -440,36 +445,36 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
   <div class="question-card active" id="q1">
     <span class="q-number">Question 01 / 07</span>
-    <div class="q-text">What is your primary running goal?</div>
-    <div class="q-hint">This shapes everything — distance targets, pace work, and build phases.</div>
+    <div class="q-text">What are you training for?</div>
+    <div class="q-hint">Pick the distance you're building towards — this sets your sessions, paces, and build phases.</div>
     <div class="options">
-      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="5k"><span class="opt-icon">&#127939;</span><span><span class="opt-label">Run a 5K</span><span class="opt-desc">Complete or improve your 5K time</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="10k"><span class="opt-icon">&#127919;</span><span><span class="opt-label">Run a 10K</span><span class="opt-desc">Build towards your first or faster 10K</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="half"><span class="opt-icon">&#127885;</span><span><span class="opt-label">Half Marathon</span><span class="opt-desc">13.1 miles — a serious challenge</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="marathon"><span class="opt-icon">&#127894;</span><span><span class="opt-label">Full Marathon</span><span class="opt-desc">The ultimate 26.2 mile goal</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="general"><span class="opt-icon">&#128170;</span><span><span class="opt-label">General Fitness</span><span class="opt-desc">Get fitter, lose weight, feel better</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="5k"><span class="opt-icon">&#127939;</span><span><span class="opt-label">5K</span><span class="opt-desc">Race or improve your personal best over 5km</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="10k"><span class="opt-icon">&#127919;</span><span><span class="opt-label">10K</span><span class="opt-desc">Build speed and endurance for 10km</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="half"><span class="opt-icon">&#127885;</span><span><span class="opt-label">Half Marathon</span><span class="opt-desc">21.1km — the perfect step up</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="marathon"><span class="opt-icon">&#127894;</span><span><span class="opt-label">Full Marathon</span><span class="opt-desc">42.2km — the classic distance</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q1')" data-value="general"><span class="opt-icon">&#128170;</span><span><span class="opt-label">General Fitness</span><span class="opt-desc">No race target — just run consistently and feel good</span></span></button>
     </div>
     <div class="q-nav"><button class="btn-back" style="opacity:.5;font-size:.75rem" onclick="fillTestDefaults()">Fill test defaults</button><button class="btn-next" id="next-q1" disabled onclick="nextQuestion(1)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q2">
     <span class="q-number">Question 02 / 07</span>
-    <div class="q-text">What's the longest run you've done recently?</div>
-    <div class="q-hint">Think about the past month — this sets your starting long run distance.</div>
+    <div class="q-text">How far have you run lately?</div>
+    <div class="q-hint">Think about the last few weeks — your longest recent run sets your week-one long run.</div>
     <div class="options">
-      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="none"><span class="opt-icon">&#127807;</span><span><span class="opt-label">I haven't been running</span><span class="opt-desc">Starting fresh or returning after a long break</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="0to5"><span class="opt-icon">&#128694;</span><span><span class="opt-label">Up to 5 km</span><span class="opt-desc">Comfortable running short distances</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="5to10"><span class="opt-icon">&#127939;</span><span><span class="opt-label">5 – 10 km</span><span class="opt-desc">Running regularly, building a base</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="10to16"><span class="opt-icon">&#127885;</span><span><span class="opt-label">10 – 16 km</span><span class="opt-desc">Comfortable with longer distances</span></span></button>
-      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="16plus"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Over 16 km</span><span class="opt-desc">Experienced — long runs are familiar territory</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="none"><span class="opt-icon">&#127807;</span><span><span class="opt-label">Just starting out</span><span class="opt-desc">New to running, or returning after a long break</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="0to5"><span class="opt-icon">&#128694;</span><span><span class="opt-label">Up to 5 km</span><span class="opt-desc">Getting comfortable running short distances</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="5to10"><span class="opt-icon">&#127939;</span><span><span class="opt-label">5 – 10 km</span><span class="opt-desc">Running consistently, building a solid base</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="10to16"><span class="opt-icon">&#127885;</span><span><span class="opt-label">10 – 16 km</span><span class="opt-desc">Comfortable with longer efforts on weekends</span></span></button>
+      <button class="option-btn" onclick="selectOption(this,'q2')" data-value="16plus"><span class="opt-icon">&#9889;</span><span><span class="opt-label">Over 16 km</span><span class="opt-desc">Experienced — big long runs are familiar territory</span></span></button>
     </div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(2)">&larr; Back</button><button class="btn-next" id="next-q2" disabled onclick="nextQuestion(2)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q3">
     <span class="q-number">Question 03 / 07</span>
-    <div class="q-text">Which days of the week can you run?</div>
-    <div class="q-hint">Select all days that work for you — we'll spread your sessions across them.</div>
+    <div class="q-text">Which days can you run?</div>
+    <div class="q-hint">Select every day that works for you — we'll fit your sessions around them.</div>
     <div class="day-select-grid" id="day-select-grid">
       <button class="day-btn" data-day="Mon" onclick="toggleDay('Mon')">Mon</button>
       <button class="day-btn" data-day="Tue" onclick="toggleDay('Tue')">Tue</button>
@@ -484,31 +489,39 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
   <div class="question-card" id="q4">
     <span class="q-number">Question 04 / 07</span>
-    <div class="q-text">Which day is best for your long run?</div>
-    <div class="q-hint">The long run is your most important weekly session — typically a weekend morning.</div>
+    <div class="q-text">Which day is your long run day?</div>
+    <div class="q-hint">The long run is the anchor of your week — usually a relaxed weekend morning when you have time.</div>
     <div class="day-select-grid" id="long-run-day-grid"></div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(4)">&larr; Back</button><button class="btn-next" id="next-q4" disabled onclick="nextQuestion(4)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q6">
     <span class="q-number">Question 05 / 07</span>
-    <div class="q-text">What's your current running pace?</div>
-    <div class="q-hint">Enter a recent race or time trial — we'll use this to set personalised paces across your plan. Skip if you're not sure.</div>
+    <div class="q-text">What's a recent race time?</div>
+    <div class="q-hint">Enter a real finish time from any recent race or time trial — we'll use it to set personalised training paces. Not sure? Skip it.</div>
     <div class="day-select-grid" id="pace-dist-grid">
       <button class="day-btn" data-dist="5k"       onclick="selectPaceDist('5k')">5K</button>
       <button class="day-btn" data-dist="10k"      onclick="selectPaceDist('10k')">10K</button>
       <button class="day-btn" data-dist="half"     onclick="selectPaceDist('half')">Half</button>
       <button class="day-btn" data-dist="marathon" onclick="selectPaceDist('marathon')">Marathon</button>
-      <button class="day-btn" data-dist="skip"     onclick="selectPaceDist('skip')" style="color:var(--muted)">Not sure</button>
+      <button class="day-btn" data-dist="skip"     onclick="selectPaceDist('skip')" style="color:var(--muted)">Skip</button>
     </div>
-    <div id="pace-time-wrap" style="display:none;margin-top:.5rem">
-      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
-        <input type="number" id="pace-h" min="0" max="9" placeholder="0" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
-        <span class="pace-sep">h</span>
-        <input type="number" id="pace-m" min="0" max="59" placeholder="25" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
-        <span class="pace-sep">m</span>
-        <input type="number" id="pace-s" min="0" max="59" placeholder="00" class="profile-input pace-time-input" oninput="onPaceTimeInput()">
-        <span class="pace-sep">s</span>
+    <div id="pace-time-wrap" style="display:none;margin-top:1rem">
+      <div class="time-inputs">
+        <div class="time-unit">
+          <input type="number" id="pace-h" min="0" max="9" placeholder="0" oninput="onPaceTimeInput()">
+          <span class="time-unit-label">hrs</span>
+        </div>
+        <span class="time-sep">:</span>
+        <div class="time-unit">
+          <input type="number" id="pace-m" min="0" max="59" placeholder="25" oninput="onPaceTimeInput()">
+          <span class="time-unit-label">min</span>
+        </div>
+        <span class="time-sep">:</span>
+        <div class="time-unit">
+          <input type="number" id="pace-s" min="0" max="59" placeholder="00" oninput="onPaceTimeInput()">
+          <span class="time-unit-label">sec</span>
+        </div>
       </div>
       <div id="pace-preview" class="pace-preview"></div>
     </div>
@@ -517,28 +530,50 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
   <div class="question-card" id="q7">
     <span class="q-number">Question 06 / 07</span>
-    <div class="q-text">Do you have a race date?</div>
-    <div class="q-hint">Enter your race date for a precise plan with proper taper, or pick an approximate duration instead.</div>
-    <div style="margin-bottom:1.2rem">
-      <label style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:.5rem">Race date (optional)</label>
-      <input type="date" id="race-date-input" class="profile-input" style="max-width:200px;padding:.6rem .8rem;font-size:.95rem" oninput="onRaceDateInput()">
-      <div id="race-date-preview" style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent);min-height:1.4em;margin-top:.4rem"></div>
+    <div class="q-text">When's the race?</div>
+    <div class="q-hint">Give us a date for a plan with a proper taper built in. No date? Pick a duration instead.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.2rem;align-items:start">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:.5rem">Race date <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="date" id="race-date-input" class="profile-input" style="max-width:200px;padding:.6rem .8rem;font-size:.95rem" oninput="onRaceDateInput()">
+        <div id="race-date-preview" style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--accent);min-height:1.4em;margin-top:.4rem"></div>
+      </div>
+      <div id="target-time-wrap">
+        <label style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:.5rem">Target time <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <div class="time-inputs" style="margin-bottom:.4rem">
+          <div class="time-unit">
+            <input type="number" id="target-h" min="0" max="9" placeholder="1" oninput="onTargetTimeInput()">
+            <span class="time-unit-label">hrs</span>
+          </div>
+          <span class="time-sep">:</span>
+          <div class="time-unit">
+            <input type="number" id="target-m" min="0" max="59" placeholder="45" oninput="onTargetTimeInput()">
+            <span class="time-unit-label">min</span>
+          </div>
+          <span class="time-sep">:</span>
+          <div class="time-unit">
+            <input type="number" id="target-s" min="0" max="59" placeholder="00" oninput="onTargetTimeInput()">
+            <span class="time-unit-label">sec</span>
+          </div>
+        </div>
+        <div id="target-preview" class="pace-preview"></div>
+      </div>
     </div>
-    <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.7rem">Or choose a duration</div>
+    <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.7rem">Or choose a plan length</div>
     <div class="options">
-      <button class="option-btn" onclick="selectTimeline(this,'4w')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — a sharpening plan</span></span></button>
-      <button class="option-btn" onclick="selectTimeline(this,'8w')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two months to build strong foundations</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'4w')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — sharpen what you have</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'8w')" data-value="8w"><span class="opt-icon">&#128198;</span><span><span class="opt-label">8 Weeks</span><span class="opt-desc">Two solid months of structured training</span></span></button>
       <button class="option-btn" onclick="selectTimeline(this,'12w')" data-value="12w"><span class="opt-icon">&#128467;</span><span><span class="opt-label">12 Weeks</span><span class="opt-desc">The sweet spot for most race distances</span></span></button>
-      <button class="option-btn" onclick="selectTimeline(this,'16w')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">Plenty of time to build properly</span></span></button>
-      <button class="option-btn" onclick="selectTimeline(this,'open')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Fixed Date</span><span class="opt-desc">Training for general fitness</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'16w')" data-value="16w"><span class="opt-icon">&#127919;</span><span><span class="opt-label">16+ Weeks</span><span class="opt-desc">A full build with time to do it properly</span></span></button>
+      <button class="option-btn" onclick="selectTimeline(this,'open')" data-value="open"><span class="opt-icon">&#9854;</span><span><span class="opt-label">No Race Date</span><span class="opt-desc">Just want to train consistently</span></span></button>
     </div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(7)">&larr; Back</button><button class="btn-next" id="next-q7" disabled onclick="nextQuestion(7)">Continue &rarr;</button></div>
   </div>
 
   <div class="question-card" id="q9">
     <span class="q-number">Question 07 / 07</span>
-    <div class="q-text">Give your plan a name.</div>
-    <div class="q-hint">We've suggested one based on your goal — change it to anything you like, e.g. "Barcelona Half Marathon".</div>
+    <div class="q-text">Name your plan.</div>
+    <div class="q-hint">We've suggested a name based on your goal — or personalise it, e.g. "Paris Marathon 2026".</div>
     <input type="text" id="plan-name-input" class="profile-input" style="font-size:1rem;padding:.8rem 1rem;margin-bottom:.5rem" placeholder="My Training Plan" oninput="answers.planName=this.value">
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(9)">&larr; Back</button><button class="btn-next" onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
   </div>
@@ -740,7 +775,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
-const answers = { q1: null, q2: null, q7: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null };
+const answers = { q1: null, q2: null, q7: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null, targetTimeSecs: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
@@ -1034,6 +1069,27 @@ function onPaceTimeInput() {
   nextBtn.disabled = false;
 }
 
+function onTargetTimeInput() {
+  const h = parseInt(document.getElementById('target-h').value) || 0;
+  const m = parseInt(document.getElementById('target-m').value) || 0;
+  const s = parseInt(document.getElementById('target-s').value) || 0;
+  const total = h * 3600 + m * 60 + s;
+  const preview = document.getElementById('target-preview');
+  if (total <= 0) {
+    answers.targetTimeSecs = null;
+    preview.textContent = '';
+    return;
+  }
+  answers.targetTimeSecs = total;
+  const distKm = answers.q1 === '5k' ? 5 : answers.q1 === '10k' ? 10 : answers.q1 === 'half' ? 21.0975 : answers.q1 === 'marathon' ? 42.195 : null;
+  if (distKm) {
+    const pSec = total / distKm;
+    const pMin = Math.floor(pSec / 60);
+    const pSecRem = Math.round(pSec % 60);
+    preview.textContent = `= ${pMin}:${String(pSecRem).padStart(2,'0')}/km target pace`;
+  }
+}
+
 // ── Race date / timeline helpers ──────────────────────────────────────────────
 
 function onRaceDateInput() {
@@ -1110,9 +1166,10 @@ async function submitSurvey() {
         planName:      answers.planName || undefined,
         preferredDays: answers.preferredDays.length > 0 ? answers.preferredDays : undefined,
         longRunDay:    answers.longRunDay || undefined,
-        paceDistance:  answers.paceDistance !== 'skip' ? (answers.paceDistance || undefined) : undefined,
-        paceTimeSecs:  answers.paceTimeSecs || undefined,
-        raceDate:      answers.raceDate || undefined,
+        paceDistance:    answers.paceDistance !== 'skip' ? (answers.paceDistance || undefined) : undefined,
+        paceTimeSecs:    answers.paceTimeSecs || undefined,
+        raceDate:        answers.raceDate || undefined,
+        targetTimeSecs:  answers.targetTimeSecs || undefined,
       }),
     });
 
@@ -1205,6 +1262,17 @@ async function editPlan() {
     } else if (s.timeline && s.timeline !== 'open') {
       const btn = document.querySelector(`#q7 .option-btn[data-value="${s.timeline}"]`);
       if (btn) selectTimeline(btn, s.timeline);
+    }
+    // Pre-fill target time
+    answers.targetTimeSecs = s.targetTimeSecs || null;
+    if (s.targetTimeSecs) {
+      const th = Math.floor(s.targetTimeSecs / 3600);
+      const tm = Math.floor((s.targetTimeSecs % 3600) / 60);
+      const ts = s.targetTimeSecs % 60;
+      document.getElementById('target-h').value = th || '';
+      document.getElementById('target-m').value = tm || '';
+      document.getElementById('target-s').value = ts || '';
+      onTargetTimeInput();
     }
     // Reset to q1
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));

@@ -98,6 +98,7 @@ for (const sql of [
   'ALTER TABLE users ADD COLUMN survey_long_run_day TEXT',
   'ALTER TABLE users ADD COLUMN survey_pace_distance TEXT',
   'ALTER TABLE users ADD COLUMN survey_pace_time_s INTEGER',
+  'ALTER TABLE users ADD COLUMN survey_target_time_s INTEGER',
 ]) {
   try { db.exec(sql); } catch (_) { /* column already exists */ }
 }

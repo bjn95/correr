@@ -60,7 +60,7 @@ app.use('/webhook', stravaRouter);
 // If userId is provided and exists, updates that user's plan instead of creating a new one
 // Returns: { userId, weeks, totalRuns, peakLongRun, startDate }
 app.post('/api/plan', (req, res) => {
-  const { goal, longestRun, days, timeline, planName, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate } = req.body;
+  const { goal, longestRun, days, timeline, planName, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, targetTimeSecs } = req.body;
   const existingId = req.body.userId || req.session.correrUserId;
   const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
 
@@ -70,18 +70,18 @@ app.post('/api/plan', (req, res) => {
   if (existing) {
     db.prepare(`
       UPDATE users SET survey_goal=?, survey_level=?, survey_days=?, survey_timeline=?, plan_name=?,
-        survey_preferred_days=?, survey_long_run_day=?, survey_pace_distance=?, survey_pace_time_s=?, target_race_date=?
+        survey_preferred_days=?, survey_long_run_day=?, survey_pace_distance=?, survey_pace_time_s=?, target_race_date=?, survey_target_time_s=?
       WHERE id=?
     `).run(goal, longestRun, days || 3, timeline, planName || null,
-           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null, raceDate || null, existing.id);
+           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null, raceDate || null, targetTimeSecs || null, existing.id);
     userId = existing.id;
   } else {
     const result = db.prepare(`
       INSERT INTO users (survey_goal, survey_level, survey_days, survey_timeline, plan_name,
-        survey_preferred_days, survey_long_run_day, survey_pace_distance, survey_pace_time_s, target_race_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        survey_preferred_days, survey_long_run_day, survey_pace_distance, survey_pace_time_s, target_race_date, survey_target_time_s)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(goal, longestRun, days || 3, timeline, planName || null,
-           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null, raceDate || null);
+           preferredDaysJson, longRunDay || null, paceDistance || null, paceTimeSecs || null, raceDate || null, targetTimeSecs || null);
     userId = result.lastInsertRowid;
   }
 
@@ -141,6 +141,7 @@ app.get('/api/plan', (req, res) => {
     paceDistance:   user.survey_pace_distance || null,
     paceTimeSecs:   user.survey_pace_time_s   || null,
     raceDate:       user.target_race_date     || null,
+    targetTimeSecs: user.survey_target_time_s || null,
   };
 
   res.json({ summary, workouts, byWeek, survey });
