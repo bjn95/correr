@@ -201,6 +201,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .type-hills{background:rgba(180,83,9,.1);color:#b45309}
 .type-progression{background:rgba(6,148,162,.1);color:#0694a2}
 .type-cruise{background:rgba(232,57,14,.15);color:var(--accent)}
+.type-shakeout{background:rgba(5,150,105,.1);color:#059669}
+.type-race{background:var(--accent);color:#fff;font-weight:700}
 /* Week progress bar */
 .week-progress-bar{display:flex;gap:3px;margin-bottom:2rem}
 .week-seg{flex:1;height:8px;border-radius:2px;cursor:pointer;background:var(--border);transition:background .15s,transform .1s;position:relative}
@@ -1373,7 +1375,7 @@ function weekPhaseLabel(week, total) {
 function renderWeekCarousel() {
   const workouts = planByWeek[String(currentWeek)] || planByWeek[currentWeek] || [];
   const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;', rest: '&#128564;' };
+  const typeIcons = { easy: '&#127939;', long: '&#127885;', tempo: '&#9889;', intervals: '&#128293;', fartlek: '&#128308;', hills: '&#9968;', progression: '&#128200;', cruise: '&#127987;', shakeout: '&#127774;', race: '&#127937;', rest: '&#128564;' };
 
   document.getElementById('week-carousel-title').childNodes[0].textContent = `Week ${currentWeek} `;
   document.getElementById('week-phase-label').textContent = weekPhaseLabel(currentWeek, totalPlanWeeks);
