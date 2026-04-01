@@ -19,6 +19,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem
 .nav-links a:hover{color:var(--ink)}
 .btn-nav{background:var(--ink)!important;color:var(--paper)!important;padding:.5rem 1.2rem;border-radius:2px}
 .btn-nav:hover{background:var(--accent)!important;color:#fff!important}
+.nav-premium-btn{text-decoration:none;font-size:.85rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);border:1.5px solid var(--accent);border-radius:2px;padding:.45rem 1rem;transition:background .15s,color .15s}
+.nav-premium-btn:hover{background:var(--accent);color:#fff}
+.nav-hamburger{display:none;flex-direction:column;justify-content:space-between;width:28px;height:20px;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0}
+.nav-hamburger span{display:block;width:100%;height:2px;background:var(--ink);border-radius:2px;transition:all .2s}
+.nav-hamburger.open span:nth-child(1){transform:translateY(9px) rotate(45deg)}
+.nav-hamburger.open span:nth-child(2){opacity:0}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-9px) rotate(-45deg)}
+.mobile-nav{display:none;flex-direction:column;background:var(--paper);border-bottom:2px solid var(--ink);padding:.5rem 1.5rem 1rem;gap:.1rem;position:sticky;top:var(--nav-h,56px);z-index:99}
+.mobile-nav a{display:block;padding:.75rem .5rem;font-size:.9rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--border)}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav-premium{color:var(--accent)!important;font-weight:700!important}
+.mobile-nav.open{display:flex}
 /* Connection status badges in nav */
 .nav-status{display:flex;gap:.5rem;align-items:center}
 .status-chip{display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;border-radius:50px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border:1.5px solid var(--border);color:var(--muted)}
@@ -143,7 +155,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .badge-blue{background:rgba(42,92,255,.1);color:var(--accent2)}
 .badge-green{background:var(--green-light);color:var(--green)}
 .badge-ink{background:rgba(0,0,0,.06);color:var(--ink)}
-.plan-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:2.5rem}
+.plan-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:2rem}
+.strava-cta-banner{display:flex;align-items:center;gap:1rem;background:var(--card);border:1.5px solid var(--green);border-radius:4px;padding:1rem 1.25rem;margin-bottom:2rem;flex-wrap:wrap}
+.strava-cta-icon{font-size:1.6rem;flex-shrink:0}
+.strava-cta-body{flex:1;min-width:0}
+.strava-cta-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.5px;color:var(--ink)}
+.strava-cta-sub{font-size:.82rem;color:var(--muted);margin-top:.15rem;line-height:1.4}
+.strava-cta-btn{background:var(--green);color:#fff;border:none;border-radius:3px;padding:.6rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0;display:inline-block;text-align:center}
+.strava-cta-btn:hover{opacity:.88}
+.strava-cta-dismiss{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:.25rem;line-height:1;flex-shrink:0;transition:color .15s}
+.strava-cta-dismiss:hover{color:var(--ink)}
 .summary-item{background:var(--card);padding:1.5rem;text-align:center}
 .summary-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--ink);letter-spacing:1px}
 .summary-num em{color:var(--accent);font-style:normal;font-size:1.2rem}
@@ -365,8 +386,41 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .footer-links a{font-size:.8rem;color:rgba(255,255,255,.5);text-decoration:none;text-transform:uppercase;letter-spacing:.5px;transition:color .15s}
 .footer-links a:hover{color:#fff}
 .footer-copy{grid-column:1/-1;padding-top:1.5rem;margin-top:1.5rem;border-top:1px solid rgba(255,255,255,.1);font-size:.75rem;text-align:center}
-@media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:repeat(2,1fr)}.devices-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){nav{padding:1rem 1.5rem}.nav-links{display:none}.hero-left{padding:3rem 1.5rem}.week-grid{grid-template-columns:repeat(3,1fr)}footer{grid-template-columns:1fr}}
+/* ── Premium page ───────────────────────────────────────────────────────── */
+#premium-section{max-width:960px;margin:0 auto;padding:6rem 2rem;display:none}
+.premium-hero{text-align:center;margin-bottom:4rem}
+.premium-price-block{display:inline-flex;align-items:baseline;gap:.4rem;margin:1.5rem 0 .5rem}
+.premium-price{font-family:'Bebas Neue',sans-serif;font-size:4.5rem;color:var(--accent);line-height:1}
+.premium-period{font-size:1.1rem;color:var(--muted);font-weight:400}
+.premium-note{font-size:.85rem;color:var(--muted)}
+.premium-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:3.5rem}
+.premium-card{background:var(--card);border:1.5px solid var(--border);border-radius:6px;padding:1.75rem;transition:border-color .2s,box-shadow .2s}
+.premium-card:hover{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
+.premium-card-icon{font-size:1.8rem;margin-bottom:1rem}
+.premium-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.25rem;letter-spacing:.5px;margin-bottom:.5rem}
+.premium-card-desc{font-size:.85rem;color:var(--muted);line-height:1.6}
+.premium-card.featured{border-color:var(--accent);background:var(--ink);color:#fff}
+.premium-card.featured .premium-card-desc{color:rgba(255,255,255,.55)}
+.premium-compare{background:var(--card);border:1.5px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:3.5rem}
+.compare-header{display:grid;grid-template-columns:1fr 140px 140px;background:var(--ink);color:#fff;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.compare-header>div{padding:.9rem 1.25rem}
+.compare-row{display:grid;grid-template-columns:1fr 140px 140px;border-top:1px solid var(--border);font-size:.875rem;align-items:center}
+.compare-row:hover{background:rgba(0,0,0,.02)}
+.compare-row>div{padding:.85rem 1.25rem}
+.compare-feature{color:var(--ink)}
+.compare-free{color:var(--muted);text-align:center}
+.compare-premium{color:var(--green);font-weight:600;text-align:center}
+.compare-check{color:var(--green);font-size:1.1rem}
+.compare-cross{color:var(--border);font-size:1.1rem}
+.premium-cta{text-align:center;padding:3rem 2rem;background:var(--ink);border-radius:6px;color:#fff}
+.premium-cta-title{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:.5px;margin-bottom:.75rem}
+.premium-cta-sub{color:rgba(255,255,255,.55);font-size:.9rem;margin-bottom:2rem}
+.premium-cta-btn{display:inline-block;background:var(--accent);color:#fff;padding:1rem 3rem;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;text-transform:uppercase;letter-spacing:.75px;border-radius:2px;text-decoration:none;box-shadow:4px 4px 0 rgba(255,255,255,.2);transition:transform .15s,box-shadow .15s;cursor:pointer;border:none}
+.premium-cta-btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 rgba(255,255,255,.2)}
+.premium-back{font-size:.85rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;margin-bottom:2.5rem;transition:color .15s}
+.premium-back:hover{color:var(--ink)}
+@media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:repeat(2,1fr)}.devices-grid{grid-template-columns:repeat(2,1fr)}.premium-grid{grid-template-columns:1fr}}
+@media(max-width:700px){nav{padding:1rem 1.5rem}.nav-links{display:none}.nav-status{display:none}.nav-hamburger{display:flex}.hero-left{padding:3rem 1.5rem}.week-grid{grid-template-columns:repeat(3,1fr)}footer{grid-template-columns:1fr}.premium-grid{grid-template-columns:1fr}.compare-header>div:last-child,.compare-row>div:last-child{display:none}.compare-header{grid-template-columns:1fr 100px}.compare-row{grid-template-columns:1fr 100px}}
 </style>
 </head>
 <body>
@@ -380,10 +434,22 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
       <span class="dot"></span> Strava
     </div>
+    <a href="#" id="nav-premium" onclick="showPremium();return false" class="nav-premium-btn">Go Premium</a>
     <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">My Plan</a>
     <a href="#" id="nav-get-started" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
   </div>
+  <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+<div id="mobile-nav" class="mobile-nav">
+  <a href="#" onclick="showSection('features');closeMobileNav();return false">Features</a>
+  <a href="#" onclick="showSection('plans');closeMobileNav();return false">Plans</a>
+  <a href="#" onclick="showSection('devices');closeMobileNav();return false">Devices</a>
+  <a href="#" onclick="showPremium();closeMobileNav();return false" class="mobile-nav-premium">Go Premium</a>
+  <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlan();closeMobileNav();return false">My Plan</a>
+  <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">Get Started</a>
+</div>
 
 <section id="hero">
   <div class="hero-left">
@@ -392,7 +458,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <p class="hero-sub">Correr builds your personalised running plan in minutes — tailored to your goals, fitness level, and schedule. Syncs with Strava.</p>
     <div class="hero-cta">
       <button class="btn-primary" onclick="startSurvey()">Build My Plan</button>
-      <button class="btn-secondary" onclick="showProgress()">View Progress</button>
+      <button class="btn-secondary" onclick="showProgress()">Plan Insights</button>
     </div>
   </div>
   <div class="hero-right">
@@ -401,7 +467,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <div class="hero-stats">
         <div class="stat-card"><div class="stat-num">12<span>k</span></div><div class="stat-label"><span class="pulse-dot"></span>Active Runners</div></div>
         <div class="stat-card"><div class="stat-num">94<span>%</span></div><div class="stat-label">Hit Their Goal</div></div>
-        <div class="stat-card"><div class="stat-num">8<span>wk</span></div><div class="stat-label">Avg Plan Length</div></div>
+        <div class="stat-card"><div class="stat-num">2<span>.1m</span></div><div class="stat-label">km Tracked</div></div>
         <div class="stat-card"><div class="stat-num">4<span>.8</span></div><div class="stat-label">&#11088; User Rating</div></div>
       </div>
     </div>
@@ -505,7 +571,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card active" id="q1">
-    <span class="q-number">Question 01 / 07</span>
+    <span class="q-number">Question 01 / 08</span>
     <div class="q-text">What are you training for?</div>
     <div class="q-hint">Pick the distance you're building towards — this sets your sessions, paces, and build phases.</div>
     <div class="options">
@@ -519,7 +585,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q2">
-    <span class="q-number">Question 02 / 07</span>
+    <span class="q-number">Question 02 / 08</span>
     <div class="q-text">How far have you run lately?</div>
     <div class="q-hint">Think about the last few weeks — your longest recent run sets your week-one long run.</div>
     <div class="options">
@@ -533,7 +599,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q3">
-    <span class="q-number">Question 03 / 07</span>
+    <span class="q-number">Question 03 / 08</span>
     <div class="q-text">Which days can you run?</div>
     <div class="q-hint">Select every day that works for you — we'll fit your sessions around them.</div>
     <div class="day-select-grid" id="day-select-grid">
@@ -549,15 +615,31 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q4">
-    <span class="q-number">Question 04 / 07</span>
+    <span class="q-number">Question 04 / 08</span>
     <div class="q-text">Which day is your long run day?</div>
     <div class="q-hint">The long run is the anchor of your week — usually a relaxed weekend morning when you have time.</div>
     <div class="day-select-grid" id="long-run-day-grid"></div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(4)">&larr; Back</button><button class="btn-next" id="next-q4" disabled onclick="nextQuestion(4)">Continue &rarr;</button></div>
   </div>
 
+  <div class="question-card" id="q5">
+    <span class="q-number">Question 05 / 08</span>
+    <div class="q-text">How many days a week do you run right now?</div>
+    <div class="q-hint">Most runners improve fastest by adding just one more day per week to what they're already doing.</div>
+    <div class="options" id="current-days-grid">
+      <button class="option-btn" onclick="selectCurrentDays(this,0)" data-value="0"><span class="opt-icon">&#129318;</span><span><span class="opt-label">0 days</span><span class="opt-desc">Just getting started</span></span></button>
+      <button class="option-btn" onclick="selectCurrentDays(this,1)" data-value="1"><span class="opt-icon">&#127939;</span><span><span class="opt-label">1 day</span><span class="opt-desc">Occasional run</span></span></button>
+      <button class="option-btn" onclick="selectCurrentDays(this,2)" data-value="2"><span class="opt-icon">&#127939;</span><span><span class="opt-label">2 days</span><span class="opt-desc">Getting into a routine</span></span></button>
+      <button class="option-btn" onclick="selectCurrentDays(this,3)" data-value="3"><span class="opt-icon">&#9889;</span><span><span class="opt-label">3 days</span><span class="opt-desc">Consistent base</span></span></button>
+      <button class="option-btn" onclick="selectCurrentDays(this,4)" data-value="4"><span class="opt-icon">&#9889;</span><span><span class="opt-label">4 days</span><span class="opt-desc">Building volume</span></span></button>
+      <button class="option-btn" onclick="selectCurrentDays(this,5)" data-value="5"><span class="opt-icon">&#128293;</span><span><span class="opt-label">5+ days</span><span class="opt-desc">High frequency runner</span></span></button>
+    </div>
+    <div id="current-days-tip" style="display:none;margin:.75rem 0;padding:.65rem 1rem;background:var(--green-light);border-left:3px solid var(--green);border-radius:0 3px 3px 0;font-size:.82rem;color:var(--ink)"></div>
+    <div class="q-nav"><button class="btn-back" onclick="prevQuestion(5)">&larr; Back</button><button class="btn-next" id="next-q5" disabled onclick="nextQuestion(5)">Continue &rarr;</button></div>
+  </div>
+
   <div class="question-card" id="q6">
-    <span class="q-number">Question 05 / 07</span>
+    <span class="q-number">Question 06 / 08</span>
     <div class="q-text">What's a recent race time?</div>
     <div class="q-hint">Enter a real finish time from any recent race or time trial — we'll use it to set personalised training paces. Not sure? Skip it.</div>
     <div class="day-select-grid" id="pace-dist-grid">
@@ -590,7 +672,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q7">
-    <span class="q-number">Question 06 / 07</span>
+    <span class="q-number">Question 07 / 08</span>
     <div class="q-text">When's the race?</div>
     <div class="q-hint">Give us a date for a plan with a proper taper built in. No date? Pick a duration instead.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.2rem;align-items:start">
@@ -632,7 +714,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 
   <div class="question-card" id="q9">
-    <span class="q-number">Question 07 / 07</span>
+    <span class="q-number">Question 08 / 08</span>
     <div class="q-text">Name your plan.</div>
     <div class="q-hint">We've suggested a name based on your goal — or personalise it, e.g. "Paris Marathon 2026".</div>
     <input type="text" id="plan-name-input" class="profile-input" style="font-size:1rem;padding:.8rem 1rem;margin-bottom:.5rem" placeholder="My Training Plan" oninput="answers.planName=this.value">
@@ -670,7 +752,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     </div>
     <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
       <button class="btn-secondary" onclick="editPlan()" style="font-size:.8rem;padding:.6rem 1.2rem">Edit Plan</button>
-      <button class="btn-primary" onclick="showProgress()">View Progress &#8594;</button>
+      <button class="btn-primary" onclick="showProgress()">Plan Insights &#8594;</button>
       <div id="delete-plan-wrap" style="margin-left:.25rem">
         <button id="delete-plan-btn" onclick="confirmDeletePlan()" style="background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;padding:.6rem .5rem;font-family:'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:2px" title="Delete plan">Delete plan</button>
         <span id="delete-plan-confirm" style="display:none;align-items:center;gap:.5rem">
@@ -687,6 +769,9 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="summary-item"><div class="summary-num" id="sum-completed">—</div><div class="summary-lbl">Completed</div></div>
     <div class="summary-item"><div class="summary-num" id="sum-long">—</div><div class="summary-lbl">Peak Long Run</div></div>
   </div>
+
+  <!-- Strava encouragement banner (shown when not connected) -->
+  <div id="strava-cta-banner" style="display:none"></div>
 
   <!-- Week progress bar -->
   <div class="week-progress-bar" id="week-progress-bar"></div>
@@ -719,7 +804,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="progress-header">
     <div>
       <a href="#" onclick="showMyPlan();return false;" class="progress-back">&larr; Back to plan</a>
-      <div class="progress-title">Progress Tracker</div>
+      <div class="progress-title">Plan Insights</div>
     </div>
     <button class="btn-secondary" onclick="syncNow()" id="sync-btn">&#8635; Sync Now</button>
   </div>
@@ -835,6 +920,132 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   </div>
 </section>
 
+<!-- PREMIUM -->
+<section id="premium-section">
+  <a href="#" class="premium-back" onclick="closePremium();return false">&larr; Back</a>
+
+  <div class="premium-hero">
+    <span class="section-kicker">Correr Premium</span>
+    <div class="section-title">Train smarter.<br>Race faster.</div>
+    <p class="section-sub" style="max-width:44ch;margin:.75rem auto 0">Everything in the free plan, plus the tools serious runners need to go further.</p>
+    <div class="premium-price-block">
+      <span class="premium-price">£4.99</span>
+      <span class="premium-period">/ month</span>
+    </div>
+    <div class="premium-note">Cancel any time &middot; 7-day free trial</div>
+  </div>
+
+  <!-- Feature cards -->
+  <div class="premium-grid">
+    <div class="premium-card featured">
+      <div class="premium-card-icon">&#129504;</div>
+      <div class="premium-card-title">AI Coaching Chat</div>
+      <div class="premium-card-desc">Ask your AI coach anything — pacing strategy, race-day prep, injury workarounds. Personalised answers based on your plan and history.</div>
+    </div>
+    <div class="premium-card">
+      <div class="premium-card-icon">&#128200;</div>
+      <div class="premium-card-title">Advanced Analytics</div>
+      <div class="premium-card-desc">Heart rate zones, training load, TSS trends, and VO2max estimates. Understand the data behind every run.</div>
+    </div>
+    <div class="premium-card">
+      <div class="premium-card-icon">&#9201;</div>
+      <div class="premium-card-title">Garmin Sync</div>
+      <div class="premium-card-desc">Push structured workouts directly to your Garmin watch and sync completed activities automatically, no phone needed.</div>
+    </div>
+    <div class="premium-card">
+      <div class="premium-card-icon">&#127937;</div>
+      <div class="premium-card-title">Race Predictor</div>
+      <div class="premium-card-desc">Get real-time finish time predictions across distances based on your recent training, with confidence intervals.</div>
+    </div>
+    <div class="premium-card">
+      <div class="premium-card-icon">&#128260;</div>
+      <div class="premium-card-title">Unlimited Plan Rebuilds</div>
+      <div class="premium-card-desc">Regenerate your plan as many times as you like. Change goal race, timeline, or intensity without losing your history.</div>
+    </div>
+    <div class="premium-card">
+      <div class="premium-card-icon">&#127942;</div>
+      <div class="premium-card-title">Multi-Race Planning</div>
+      <div class="premium-card-desc">Build a full racing season with A, B, and C races. Correr manages peak and taper cycles around your entire calendar.</div>
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="premium-compare">
+    <div class="compare-header">
+      <div>Feature</div>
+      <div style="text-align:center">Free</div>
+      <div style="text-align:center">Premium</div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">AI-generated training plan</div>
+      <div class="compare-free"><span class="compare-check">&#10003;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Strava run import &amp; auto-tick</div>
+      <div class="compare-free"><span class="compare-check">&#10003;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Weekly mileage chart</div>
+      <div class="compare-free"><span class="compare-check">&#10003;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Training calendar heatmap</div>
+      <div class="compare-free"><span class="compare-check">&#10003;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Plan rebuilds</div>
+      <div class="compare-free" style="text-align:center;font-size:.8rem">3 / month</div>
+      <div class="compare-premium">Unlimited</div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">AI coaching chat</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Heart rate zone analysis</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Training load &amp; TSS trends</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Garmin workout push</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Race finish time predictor</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Multi-race season planning</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-feature">Priority support</div>
+      <div class="compare-free"><span class="compare-cross">&#8212;</span></div>
+      <div class="compare-premium"><span class="compare-check">&#10003;</span></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="premium-cta">
+    <div class="premium-cta-title">Start your free 7-day trial</div>
+    <div class="premium-cta-sub">No card required during trial &middot; £4.99/mo after &middot; Cancel any time</div>
+    <button class="premium-cta-btn" onclick="showToast('Coming soon — payment not yet live','success')">Start Free Trial</button>
+  </div>
+</section>
+
 <footer>
   <div>
     <span class="footer-logo">Correr<span>.</span></span>
@@ -856,7 +1067,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
-const answers = { q1: null, q2: null, q7: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null, targetTimeSecs: null };
+const answers = { q1: null, q2: null, q7: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null, targetTimeSecs: null, currentRunDays: null };
 let userId = localStorage.getItem('correr_user_id');
 let connectionStatus = { strava: false };
 let planByWeek = {};
@@ -1005,8 +1216,8 @@ function selectOption(btn, q) {
 
 function nextQuestion(n) {
   document.getElementById('q' + n).classList.remove('active');
-  // Skip removed questions: q5 (km slider) and q8 (focus)
-  const skip = { 4: 6, 7: 9 };
+  // Skip removed question: q8 (focus)
+  const skip = { 7: 9 };
   const next = skip[n] || (n + 1);
   if (next === 4) populateLongRunDayGrid();
   document.getElementById('q' + next).classList.add('active');
@@ -1027,23 +1238,40 @@ function prefillPlanName() {
 
 function prevQuestion(n) {
   document.getElementById('q' + n).classList.remove('active');
-  // Skip removed questions: q5 (km slider) and q8 (focus)
-  const skip = { 6: 4, 9: 7 };
+  // Skip removed question: q8 (focus)
+  const skip = { 9: 7 };
   const prev = skip[n] || (n - 1);
   document.getElementById('q' + prev).classList.add('active');
   updateProgress(prev);
 }
 
 function updateProgress(n) {
-  // Map actual question IDs (skipping q5 and q8) to display step 1–7
-  const stepMap = { 1:1, 2:2, 3:3, 4:4, 6:5, 7:6, 9:7 };
+  // Map actual question IDs (skipping q8) to display step 1–8
+  const stepMap = { 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 9:8 };
   const step = stepMap[n] || n;
-  document.getElementById('progress-count').textContent = step + ' of 7';
-  document.getElementById('progress-fill').style.width = ((step / 7) * 100) + '%';
+  document.getElementById('progress-count').textContent = step + ' of 8';
+  document.getElementById('progress-fill').style.width = ((step / 8) * 100) + '%';
 }
 
 function updateSlider(input, labelId, suffix) {
   document.getElementById(labelId).textContent = input.value + suffix;
+}
+
+// ── Current days selection ────────────────────────────────────────────────────
+
+function selectCurrentDays(btn, n) {
+  document.querySelectorAll('#current-days-grid .option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  answers.currentRunDays = n;
+  document.getElementById('next-q5').disabled = false;
+  const tip = document.getElementById('current-days-tip');
+  const target = Math.min(n + 1, 7);
+  if (target <= n) {
+    tip.textContent = "You're already running 5+ days — we'll build you a high-performance plan.";
+  } else {
+    tip.textContent = `Great — we'll plan your training around ${target} run${target !== 1 ? 's' : ''} per week, just one more than now.`;
+  }
+  tip.style.display = '';
 }
 
 // ── Day selection helpers ──────────────────────────────────────────────────────
@@ -1251,6 +1479,7 @@ async function submitSurvey() {
         paceTimeSecs:    answers.paceTimeSecs || undefined,
         raceDate:        answers.raceDate || undefined,
         targetTimeSecs:  answers.targetTimeSecs || undefined,
+        currentRunDays:  answers.currentRunDays ?? undefined,
       }),
     });
 
@@ -1289,8 +1518,8 @@ function showMyPlan() {
     startSurvey();
     return;
   }
-  hide('survey-section');
-  hide('generating');
+  ['hero','how-it-works','features-section','devices-section','survey-section',
+   'generating','progress-section','profile-section'].forEach(id => hide(id));
   show('plan-section');
   scrollTop();
 }
@@ -1428,6 +1657,8 @@ function renderPlan(summary, workouts, byWeek, raceDate) {
 
   document.getElementById('nav-get-started').style.display = 'none';
   document.getElementById('nav-my-plan').style.display = '';
+  document.getElementById('mobile-nav-my-plan').style.display = '';
+  document.getElementById('mobile-nav-get-started').style.display = 'none';
   show('plan-section');
   scrollTop();
 }
@@ -1436,9 +1667,11 @@ function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
   const stravaUrl = `${API}/auth/strava/connect?userId=${userId}`;
   const grid = document.getElementById('integration-grid');
   const title = document.getElementById('devices-title');
+  const banner = document.getElementById('strava-cta-banner');
 
   if (stravaConnected) {
-    // Compact strip
+    // Hide banner and show compact strip
+    if (banner) banner.style.display = 'none';
     title.style.display = 'none';
     grid.style.display = 'none';
     // Insert/update compact strip
@@ -1456,7 +1689,21 @@ function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
       <button class="integration-strip-disconnect" onclick="disconnectStrava()">Disconnect</button>
     `;
   } else {
-    // Full card
+    // Show encouragement banner
+    if (banner && banner.dataset.dismissed !== '1') {
+      banner.style.display = '';
+      banner.className = 'strava-cta-banner';
+      banner.innerHTML = `
+        <span class="strava-cta-icon">&#127939;</span>
+        <div class="strava-cta-body">
+          <div class="strava-cta-title">Your plan is ready — now connect Strava</div>
+          <div class="strava-cta-sub">Correr will automatically tick off your runs as you complete them and track your actual vs planned distance.</div>
+        </div>
+        <a href="${stravaUrl}" class="strava-cta-btn">Connect Strava</a>
+        <button class="strava-cta-dismiss" onclick="dismissStravaBanner()" title="Dismiss">&times;</button>
+      `;
+    }
+    // Full card further down
     title.style.display = '';
     grid.style.display = '';
     document.getElementById('integration-strip')?.remove();
@@ -1474,6 +1721,23 @@ function renderIntegrationCards(stravaConnected, stravaName, stravaPic) {
       </div>
     `;
   }
+}
+
+function toggleMobileNav() {
+  const menu = document.getElementById('mobile-nav');
+  const btn  = document.getElementById('nav-hamburger');
+  menu.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+function closeMobileNav() {
+  document.getElementById('mobile-nav').classList.remove('open');
+  document.getElementById('nav-hamburger').classList.remove('open');
+}
+
+function dismissStravaBanner() {
+  const banner = document.getElementById('strava-cta-banner');
+  if (banner) { banner.style.display = 'none'; banner.dataset.dismissed = '1'; }
 }
 
 const DAY_OFFSETS = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
@@ -1751,6 +2015,20 @@ async function toggleWorkout(id) {
   }
 }
 
+// ── Premium ───────────────────────────────────────────────────────────────────
+function showPremium() {
+  ['hero','how-it-works','features-section','devices-section','survey-section',
+   'plan-section','progress-section','profile-section','generating'].forEach(id => hide(id));
+  show('premium-section');
+  scrollTop();
+}
+
+function closePremium() {
+  hide('premium-section');
+  if (planWorkouts.length) showMyPlan();
+  else { show('hero'); show('how-it-works'); scrollTop(); }
+}
+
 // ??? PROGRESS ?????????????????????????????????????????????????????????????????
 async function showProgress() {
   hide('hero'); hide('how-it-works'); hide('plan-section');
@@ -1953,11 +2231,11 @@ function renderRecentRuns(activities) {
       <span class="run-emoji">${icons[a.sport_type] || '&#127939;'}</span>
       <div style="flex:1;min-width:0">
         <div class="run-name">${a.name}</div>
-        <div class="run-meta">${dateLabel}${dateLabel && a.distance_km ? ' &middot; ' : ''}${a.distance_km ? a.distance_km + 'km' : ''}${a.duration_formatted ? ' &middot; ' + a.duration_formatted : ''}</div>
+        <div class="run-meta">${dateLabel}${dateLabel && a.duration_formatted ? ' &middot; ' : ''}${a.duration_formatted || ''}</div>
       </div>
       <div class="run-stat-col">
-        <div class="run-stat">${a.pace_formatted || '--'}</div>
-        <div class="run-pace">/km</div>
+        <div class="run-stat">${a.distance_km ? a.distance_km + 'km' : '--'}</div>
+        <div class="run-pace">${a.pace_formatted ? a.pace_formatted + '/km' : ''}</div>
       </div>
     </div>`;
   }).join('') + '</div>';
@@ -2135,12 +2413,22 @@ function renderProfile(data) {
       <span class="profile-value">${value}</span>
     </div>`).join('');
 
-  // Extra fields
+  // Extra fields — explicit saves take precedence; fall back to survey answers
   const e = data.extra || {};
-  if (e.targetRaceName) document.getElementById('pf-race-name').value = e.targetRaceName;
-  if (e.targetRaceDate) document.getElementById('pf-race-date').value = e.targetRaceDate;
-  if (e.targetRaceTime) document.getElementById('pf-race-time').value = e.targetRaceTime;
-  if (e.age)            document.getElementById('pf-age').value = e.age;
+  const s2 = data.survey || {};
+  document.getElementById('pf-race-name').value = e.targetRaceName || '';
+  document.getElementById('pf-race-date').value = e.targetRaceDate || s2.raceDate || '';
+  if (e.targetRaceTime) {
+    document.getElementById('pf-race-time').value = e.targetRaceTime;
+  } else if (s2.targetTimeSecs) {
+    const th = Math.floor(s2.targetTimeSecs / 3600);
+    const tm = Math.floor((s2.targetTimeSecs % 3600) / 60);
+    const ts = s2.targetTimeSecs % 60;
+    document.getElementById('pf-race-time').value = `${th}:${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`;
+  } else {
+    document.getElementById('pf-race-time').value = '';
+  }
+  if (e.age) document.getElementById('pf-age').value = e.age;
 
   // Training stats
   const st = data.stats || {};
