@@ -171,7 +171,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .schedule-week-phase{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:1}
 .schedule-week-count{font-size:.78rem;color:var(--muted);white-space:nowrap}
 .schedule-week-chevron{font-size:.8rem;color:var(--muted);margin-left:.25rem;transition:transform .2s}
-.workout-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:1rem;padding:.85rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
+.workout-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:start;gap:1rem;padding:.85rem 1.2rem;border-bottom:1px solid var(--border);transition:background .15s}
+.workout-desc{font-size:.78rem;color:var(--muted);margin-top:.35rem;line-height:1.55;max-width:58ch}
+.workout-row.completed .workout-desc{opacity:.6}
+.workout-struct{display:inline-block;margin-top:.3rem;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--ink);background:rgba(0,0,0,.05);border-radius:2px;padding:.15rem .45rem;line-height:1.4}
 .workout-row:hover{background:rgba(0,0,0,.02)}
 .workout-row.completed{opacity:.6}
 .workout-row.completed .workout-name{text-decoration:line-through}
@@ -1438,6 +1441,7 @@ function renderWorkoutList(workouts) {
           <div>
             <div class="workout-name">${w.name}</div>
             <div class="workout-sub">Week ${w.week_number}, ${w.day_of_week}${targetPace ? ` &middot; ${targetPace}/km` : ''}</div>
+            ${w.description ? `<div class="workout-desc">${w.description}</div>` : ''}
             ${actualBar}
           </div>
           ${distDisplay}
