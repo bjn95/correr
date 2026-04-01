@@ -283,6 +283,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .upcoming-item:hover{background:var(--border)}
 .upcoming-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
 @media(max-width:700px){.progress-grid{grid-template-columns:1fr}.progress-stats{grid-template-columns:repeat(2,1fr)}}
+/* Training heatmap */
+.heatmap-wrap{overflow-x:auto;padding-bottom:.25rem;margin-top:.25rem}
+.heatmap-table{display:table;border-collapse:separate;border-spacing:3px;min-width:min-content}
+.heatmap-row{display:table-row}
+.heatmap-day-lbl{display:table-cell;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--muted);padding-right:.4rem;vertical-align:middle;white-space:nowrap;width:2rem}
+.heatmap-week-lbl{display:table-cell;font-family:'DM Mono',monospace;font-size:.56rem;color:var(--muted);text-align:center;padding-bottom:.3rem;vertical-align:bottom;width:22px}
+.heatmap-week-lbl.hm-current{color:var(--accent);font-weight:700}
+.heatmap-cell{display:table-cell;width:20px;height:18px;border-radius:3px;vertical-align:middle;cursor:default;transition:opacity .15s}
+.heatmap-cell:hover{opacity:.75}
+.heatmap-cell.hm-rest{background:transparent}
+.heatmap-cell.hm-planned{background:rgba(0,0,0,.07);outline:1px solid var(--border)}
+.heatmap-cell.hm-done{background:var(--green)}
+.heatmap-cell.hm-missed{background:rgba(232,57,14,.18)}
+.heatmap-cell.hm-week{outline:2px solid var(--accent);outline-offset:1px;border-radius:2px}
+.heatmap-legend{display:flex;gap:1rem;margin-bottom:.9rem;font-size:.71rem;color:var(--muted);flex-wrap:wrap;align-items:center}
+.heatmap-legend-item{display:flex;align-items:center;gap:.3rem}
+.heatmap-legend-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+/* Session breakdown */
+.breakdown-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.8rem}
+.breakdown-row:last-child{margin-bottom:0}
+.breakdown-type{min-width:82px}
+.breakdown-bar-track{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.breakdown-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .5s ease}
+.breakdown-bar-fill.t-easy{background:var(--green)}
+.breakdown-bar-fill.t-tempo{background:var(--accent)}
+.breakdown-bar-fill.t-intervals{background:var(--accent2)}
+.breakdown-bar-fill.t-long{background:var(--ink)}
+.breakdown-bar-fill.t-hills{background:#b45309}
+.breakdown-bar-fill.t-fartlek{background:#7c3aed}
+.breakdown-bar-fill.t-strides{background:#7c3aed}
+.breakdown-bar-fill.t-progression{background:#0694a2}
+.breakdown-counts{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);min-width:3rem;text-align:right;white-space:nowrap}
 .run-stat{margin-left:auto;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--ink)}
 /* Generating */
 #generating{text-align:center;padding:5rem 2rem;display:none;max-width:500px;margin:0 auto}
@@ -707,6 +739,17 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
         <div class="bar-chart" id="bar-chart"></div>
       </div>
       <div class="progress-card">
+        <div class="p-card-header">
+          <div class="p-card-title">Training Calendar</div>
+          <div class="p-card-legend">
+            <span class="heatmap-legend-item"><span class="heatmap-legend-swatch" style="background:var(--green)"></span>Done</span>
+            <span class="heatmap-legend-item"><span class="heatmap-legend-swatch" style="background:rgba(0,0,0,.07);outline:1px solid var(--border)"></span>Planned</span>
+            <span class="heatmap-legend-item"><span class="heatmap-legend-swatch" style="background:rgba(232,57,14,.18)"></span>Missed</span>
+          </div>
+        </div>
+        <div class="heatmap-wrap" id="training-heatmap"></div>
+      </div>
+      <div class="progress-card">
         <div class="p-card-title">Upcoming Workouts</div>
         <div id="upcoming-workouts"></div>
       </div>
@@ -715,6 +758,10 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <div class="progress-card">
         <div class="p-card-title">Recent Runs</div>
         <div id="recent-runs"><div style="color:var(--muted);font-size:.9rem;padding:.5rem 0">Connect Strava to see your runs here.</div></div>
+      </div>
+      <div class="progress-card">
+        <div class="p-card-title">Session Breakdown</div>
+        <div id="session-breakdown"><div style="color:var(--muted);font-size:.9rem">No data yet.</div></div>
       </div>
     </div>
   </div>
@@ -1710,6 +1757,8 @@ async function showProgress() {
   show('progress-section');
   scrollTop();
   renderProgressStats();
+  renderHeatmap();
+  renderSessionBreakdown();
   renderUpcoming();
   await loadProgress();
 }
@@ -1736,6 +1785,8 @@ async function loadProgress() {
   }
 
   renderProgressStats();
+  renderHeatmap();
+  renderSessionBreakdown();
 }
 
 // Mimics SQLite strftime('%Y-%W', date): Sunday-based week number
@@ -1776,6 +1827,95 @@ function renderBarChart(planned, actual) {
         ${actPct > 0 ? `<div class="bar actual" style="height:${actPct}%" title="W${p.week_number} actual: ${actKm}km"></div>` : ''}
       </div>
       <span class="bar-lbl">W${p.week_number}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderHeatmap() {
+  const el = document.getElementById('training-heatmap');
+  if (!el || !planWorkouts.length) return;
+  const ALL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const numWeeks = Math.min(totalPlanWeeks, 20);
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Build lookup: weekNum → dayName → workout
+  const lookup = {};
+  for (const w of planWorkouts) {
+    if (!lookup[w.week_number]) lookup[w.week_number] = {};
+    lookup[w.week_number][w.day_of_week] = w;
+  }
+
+  let html = '<div class="heatmap-table">';
+
+  // Header row — week numbers
+  html += '<div class="heatmap-row"><div class="heatmap-day-lbl"></div>';
+  for (let w = 1; w <= numWeeks; w++) {
+    html += `<div class="heatmap-week-lbl${w === currentWeek ? ' hm-current' : ''}">W${w}</div>`;
+  }
+  html += '</div>';
+
+  // Day rows
+  for (const day of ALL_DAYS) {
+    html += `<div class="heatmap-row"><div class="heatmap-day-lbl">${day}</div>`;
+    for (let w = 1; w <= numWeeks; w++) {
+      const wo = lookup[w]?.[day];
+      let cls = 'heatmap-cell';
+      let tip = '';
+      if (!wo || wo.workout_type === 'rest') {
+        cls += ' hm-rest';
+      } else {
+        const isPast = wo.scheduled_date && wo.scheduled_date < today;
+        if (wo.completed) {
+          cls += ' hm-done';
+          const km = wo.actual_distance_m ? (wo.actual_distance_m / 1000).toFixed(1) : Math.round(wo.target_distance_km);
+          tip = `${wo.name} · ${km}km ✓`;
+        } else if (isPast) {
+          cls += ' hm-missed';
+          tip = `${wo.name} · missed`;
+        } else {
+          cls += ' hm-planned';
+          tip = `${wo.name} · ${Math.round(wo.target_distance_km)}km`;
+        }
+        if (w === currentWeek) cls += ' hm-week';
+      }
+      html += `<div class="${cls}" title="${tip}"></div>`;
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderSessionBreakdown() {
+  const el = document.getElementById('session-breakdown');
+  if (!el || !planWorkouts.length) { if (el) el.innerHTML = '<div style="color:var(--muted);font-size:.9rem">No plan data.</div>'; return; }
+
+  const counts = {};
+  for (const w of planWorkouts) {
+    if (w.workout_type === 'rest') continue;
+    if (!counts[w.workout_type]) counts[w.workout_type] = { planned: 0, done: 0, km: 0 };
+    counts[w.workout_type].planned++;
+    if (w.completed) {
+      counts[w.workout_type].done++;
+      counts[w.workout_type].km += w.actual_distance_m ? w.actual_distance_m / 1000 : w.target_distance_km;
+    }
+  }
+
+  const ORDER = ['long','easy','tempo','intervals','progression','fartlek','hills','strides','cruise','shakeout','race'];
+  const sorted = ORDER.filter(t => counts[t]).concat(Object.keys(counts).filter(t => !ORDER.includes(t)));
+
+  el.innerHTML = sorted.map(type => {
+    const { planned, done, km } = counts[type];
+    const pct = planned ? Math.round((done / planned) * 100) : 0;
+    return `<div class="breakdown-row">
+      <div class="breakdown-type">
+        <span class="workout-type type-${type}" style="font-size:.6rem;padding:.1rem .35rem">${type}</span>
+      </div>
+      <div class="breakdown-bar-track">
+        <div class="breakdown-bar-fill t-${type}" style="width:${pct}%"></div>
+      </div>
+      <div class="breakdown-counts">${done}/${planned}</div>
     </div>`;
   }).join('');
 }
