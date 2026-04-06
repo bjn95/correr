@@ -311,13 +311,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .heatmap-day-lbl{display:table-cell;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--muted);padding-right:.4rem;vertical-align:middle;white-space:nowrap;width:2rem}
 .heatmap-week-lbl{display:table-cell;font-family:'DM Mono',monospace;font-size:.56rem;color:var(--muted);text-align:center;padding-bottom:.3rem;vertical-align:bottom;width:22px}
 .heatmap-week-lbl.hm-current{color:var(--accent);font-weight:700}
-.heatmap-cell{display:table-cell;width:20px;height:18px;border-radius:3px;vertical-align:middle;cursor:default;transition:opacity .15s}
-.heatmap-cell:hover{opacity:.75}
-.heatmap-cell.hm-rest{background:transparent}
-.heatmap-cell.hm-planned{background:rgba(0,0,0,.07);outline:1px solid var(--border)}
-.heatmap-cell.hm-done{background:var(--green)}
-.heatmap-cell.hm-missed{background:rgba(232,57,14,.18)}
-.heatmap-cell.hm-week{outline:2px solid var(--accent);outline-offset:1px;border-radius:2px}
+.heatmap-cell{display:table-cell;padding:2px;vertical-align:middle;cursor:default}
+.heatmap-cell .hm-dot{display:block;width:18px;height:16px;border-radius:3px;margin:auto;transition:opacity .15s}
+.heatmap-cell:hover .hm-dot{opacity:.7}
+.heatmap-cell.hm-rest .hm-dot{background:transparent}
+.heatmap-cell.hm-planned .hm-dot{background:rgba(0,0,0,.07);box-shadow:inset 0 0 0 1px var(--border)}
+.heatmap-cell.hm-done .hm-dot{background:var(--green)}
+.heatmap-cell.hm-missed .hm-dot{background:rgba(232,57,14,.18)}
+.heatmap-cell.hm-week .hm-dot{box-shadow:0 0 0 2px var(--accent)}
 .heatmap-legend{display:flex;gap:1rem;margin-bottom:.9rem;font-size:.71rem;color:var(--muted);flex-wrap:wrap;align-items:center}
 .heatmap-legend-item{display:flex;align-items:center;gap:.3rem}
 .heatmap-legend-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
@@ -445,6 +446,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-week-label{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding-right:.4rem;gap:.1rem}
 .cp-week-num{font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.3px}
 .cp-week-date{font-size:.58rem;color:var(--border)}
+.cp-week-actions{display:flex;gap:.15rem;margin-top:.2rem}
+.cp-week-btn{background:none;border:1px solid var(--border);border-radius:2px;cursor:pointer;font-size:.65rem;padding:.1rem .3rem;color:var(--muted);line-height:1;transition:border-color .15s,color .15s}
+.cp-week-btn:hover{border-color:var(--ink);color:var(--ink)}
+.cp-week-btn.cp-week-paste{border-color:var(--accent);color:var(--accent)}
+.cp-week-btn.cp-week-paste:hover{background:var(--accent);color:#fff}
 .cp-cell{min-height:68px;background:var(--card);border:1.5px solid var(--border);border-radius:3px;padding:.25rem;display:flex;align-items:stretch;transition:border-color .15s,background .15s;position:relative}
 .cp-cell.drag-over{border-color:var(--accent);background:rgba(232,57,14,.04)}
 .cp-cell-hint{flex:1;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--border);pointer-events:none}
@@ -468,7 +474,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <nav>
   <div class="nav-logo" onclick="goHome()" style="cursor:pointer">Correr<span>.</span></div>
   <div class="nav-links">
-    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Build Plan</a>
+    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Timetable</a>
   </div>
   <div class="nav-status">
     <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
@@ -486,7 +492,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <a href="#" onclick="showSection('features');closeMobileNav();return false">Features</a>
   <a href="#" onclick="showSection('plans');closeMobileNav();return false">Plans</a>
   <a href="#" onclick="showSection('devices');closeMobileNav();return false">Devices</a>
-  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Build Plan</a>
+  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Timetable</a>
   <a href="#" onclick="showPremium();closeMobileNav();return false" class="mobile-nav-premium">Go Premium</a>
   <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlan();closeMobileNav();return false">My Plan</a>
   <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">Get Started</a>
@@ -965,8 +971,8 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <section id="custom-plan-section">
   <a href="#" class="premium-back" onclick="closeCustomPlan();return false">&larr; Back</a>
   <span class="section-kicker">Plan Builder</span>
-  <div class="cp-page-title">Design Your Own Plan</div>
-  <div class="cp-page-sub">Drag workout types onto the calendar. Click a distance to edit it. Drag between days to rearrange.</div>
+  <div class="cp-page-title">Timetable Builder</div>
+  <div class="cp-page-sub">Build your own training schedule from scratch. Drag workout types onto the calendar, click a distance to edit it, or drag between days to rearrange.</div>
 
   <div class="cp-top-bar">
     <input type="text" class="cp-plan-name-input" id="cp-plan-name" placeholder="My Training Plan">
@@ -2135,10 +2141,22 @@ const CP_TYPES = [
 const CP_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const CP_DEFAULT_DIST = { easy:5, long:16, tempo:8, intervals:8, fartlek:8, hills:6, progression:10, strides:5, rest:null };
 const CP_NAMES = { easy:'Easy Run', long:'Long Run', tempo:'Tempo Run', intervals:'Interval Session', fartlek:'Fartlek Run', hills:'Hill Reps', progression:'Progression Run', strides:'Easy + Strides', rest:'Rest Day' };
+const CP_TIPS  = {
+  easy:        'Easy Run — Conversational pace, fully aerobic. Builds your aerobic base and aids recovery between hard sessions.',
+  long:        'Long Run — Slower than easy pace. Develops endurance and fat metabolism. The cornerstone of any training plan.',
+  tempo:       'Tempo — Comfortably hard, around lactate threshold. Improves the speed you can sustain for a long time.',
+  intervals:   'Intervals — Short, fast repetitions with recovery jogs. Raises VO2 max and running economy.',
+  fartlek:     'Fartlek — Unstructured speed play mixed into an easy run. Builds speed without the rigidity of a track session.',
+  hills:       'Hills — Uphill repeats at hard effort. Strengthens legs, improves form, and builds power with lower injury risk.',
+  progression: 'Progression Run — Starts easy and finishes at tempo or race pace. Teaches your body to run fast on tired legs.',
+  strides:     'Strides — 20–30 sec accelerations at the end of an easy run. Improves running economy and neuromuscular coordination.',
+  rest:        'Rest Day — Complete rest or very light activity. Essential for adaptation and injury prevention.',
+};
 
-let cpPlan = {};       // "week-day" → { type, dist }
+let cpPlan = {};          // "week-day" → { type, dist }
 let cpWeeksCount = 8;
-let cpDrag = null;     // { from:'palette'|'cell', type, key? }
+let cpDrag = null;        // { from:'palette'|'cell', type, key? }
+let cpCopiedWeek = null;  // { Mon:{type,dist}, Tue:{type,dist}, ... } snapshot
 
 function showCustomPlan() {
   ['hero','how-it-works','features-section','devices-section','survey-section',
@@ -2163,6 +2181,7 @@ function setCpWeeks(n) {
 function buildCpPalette() {
   document.getElementById('cp-palette').innerHTML = CP_TYPES.map(({ type, label, icon }) =>
     `<div class="cp-palette-item workout-type type-${type}" draggable="true" data-type="${type}"
+          title="${CP_TIPS[type] || label}"
           ondragstart="cpPaletteDragStart(event,'${type}')" ondragend="cpDragEnd(event)">
       ${icon} ${label}
     </div>`
@@ -2184,7 +2203,15 @@ function renderCustomCalendar() {
       const d = new Date(startMs + (w - 1) * 7 * 86400000);
       dateLabel = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', timeZone:'UTC' });
     }
-    html += `<div class="cp-week-label"><span class="cp-week-num">W${w}</span><span class="cp-week-date">${dateLabel}</span></div>`;
+    const hasCopied = cpCopiedWeek !== null;
+    html += `<div class="cp-week-label">
+      <span class="cp-week-num">W${w}</span>
+      <span class="cp-week-date">${dateLabel}</span>
+      <span class="cp-week-actions">
+        <button class="cp-week-btn" onclick="cpCopyWeek(${w})" title="Copy week">&#9112;</button>
+        ${hasCopied ? `<button class="cp-week-btn cp-week-paste" onclick="cpPasteWeek(${w})" title="Paste week">&#9113;</button>` : ''}
+      </span>
+    </div>`;
 
     CP_DAYS.forEach(day => {
       const key = `${w}-${day}`;
@@ -2256,7 +2283,27 @@ function cpTrashDrop(e) {
 
 function cpRemove(key)           { delete cpPlan[key]; renderCustomCalendar(); }
 function cpSetDist(key, val)     { if (cpPlan[key]) cpPlan[key].dist = parseFloat(val) || null; }
-function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; renderCustomCalendar(); } }
+function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; renderCustomCalendar(); } }
+
+function cpCopyWeek(w) {
+  cpCopiedWeek = {};
+  CP_DAYS.forEach(day => {
+    const wo = cpPlan[`${w}-${day}`];
+    if (wo) cpCopiedWeek[day] = { ...wo };
+  });
+  showToast(`Week ${w} copied`, 'success');
+  renderCustomCalendar();
+}
+
+function cpPasteWeek(w) {
+  if (!cpCopiedWeek) return;
+  CP_DAYS.forEach(day => {
+    const key = `${w}-${day}`;
+    if (cpCopiedWeek[day]) cpPlan[key] = { ...cpCopiedWeek[day] };
+    else delete cpPlan[key];
+  });
+  renderCustomCalendar();
+}
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 
@@ -2279,23 +2326,27 @@ async function saveCustomPlan() {
   if (!workouts.length) { showToast('Add at least one workout first', 'error'); return; }
 
   statusEl.textContent = 'Saving…';
+  let saveOk = false;
   try {
     const res = await fetch(`${API}/api/plan/custom`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: userId || undefined, planName, startDate: startVal || null, workouts }),
     });
-    if (!res.ok) throw new Error();
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     userId = data.userId;
     localStorage.setItem('correr_user_id', String(userId));
+    saveOk = true;
+  } catch (err) {
+    showToast(`Could not save plan: ${err.message}`, 'error');
+    statusEl.textContent = 'Save failed';
+  }
+  if (saveOk) {
     statusEl.textContent = '';
     showToast('Plan saved!', 'success');
     hide('custom-plan-section');
     await loadPlan();
-  } catch {
-    showToast('Could not save plan', 'error');
-    statusEl.textContent = 'Save failed';
   }
 }
 
@@ -2411,6 +2462,7 @@ function renderHeatmap() {
       let tip = '';
       if (!wo || wo.workout_type === 'rest') {
         cls += ' hm-rest';
+        if (w === currentWeek) cls += ' hm-week';
       } else {
         const isPast = wo.scheduled_date && wo.scheduled_date < today;
         if (wo.completed) {
@@ -2426,7 +2478,7 @@ function renderHeatmap() {
         }
         if (w === currentWeek) cls += ' hm-week';
       }
-      html += `<div class="${cls}" title="${tip}"></div>`;
+      html += `<div class="${cls}" title="${tip}"><span class="hm-dot"></span></div>`;
     }
     html += '</div>';
   }
