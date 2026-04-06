@@ -252,9 +252,23 @@ function buildWeekSessions({ weekNum, totalWeeks, days, longKm, targetPaces, goa
     6: ['Mon','Tue','Wed','Thu','Fri','Sat'],
   };
 
-  const activeDays = (preferredDays && preferredDays.length >= 1)
-    ? preferredDays.slice().sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b))
-    : (DEFAULT_DAYS[clamp(days, 2, 6)] || DEFAULT_DAYS[3]);
+  const activeDays = (() => {
+    if (!preferredDays || preferredDays.length === 0)
+      return DEFAULT_DAYS[clamp(days, 2, 6)] || DEFAULT_DAYS[3];
+    const sorted = preferredDays.slice().sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b));
+    if (days >= sorted.length) return sorted;
+    // Trim to `days` slots: always keep longRunDay (last/specified), spread the rest evenly
+    const anchor = (longRunDay && sorted.includes(longRunDay)) ? longRunDay : sorted[sorted.length - 1];
+    const others = sorted.filter(d => d !== anchor);
+    const need   = Math.max(0, days - 1);
+    const selected = new Set([anchor]);
+    if (need > 0 && others.length > 0) {
+      for (let i = 0; i < need; i++) {
+        selected.add(others[Math.min(Math.round(i * (others.length / need)), others.length - 1)]);
+      }
+    }
+    return sorted.filter(d => selected.has(d));
+  })();
 
   const effectiveLongDay = (longRunDay && activeDays.includes(longRunDay))
     ? longRunDay

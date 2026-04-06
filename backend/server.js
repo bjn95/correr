@@ -91,6 +91,39 @@ app.post('/api/plan', (req, res) => {
   res.json({ userId, ...plan });
 });
 
+// POST /api/plan/custom — save a manually designed plan
+app.post('/api/plan/custom', (req, res) => {
+  const { planName, startDate, workouts } = req.body;
+  const existingId = req.body.userId || req.session.correrUserId;
+  const existing = existingId ? db.prepare('SELECT id FROM users WHERE id = ?').get(existingId) : null;
+
+  let userId;
+  if (existing) {
+    db.prepare('UPDATE users SET plan_name = ? WHERE id = ?').run(planName || 'My Custom Plan', existing.id);
+    userId = existing.id;
+  } else {
+    const result = db.prepare('INSERT INTO users (plan_name) VALUES (?)').run(planName || 'My Custom Plan');
+    userId = result.lastInsertRowid;
+  }
+  req.session.correrUserId = userId;
+
+  // Replace all plan workouts with the custom ones
+  db.prepare('UPDATE plan_workouts SET completed = 0, linked_activity_id = NULL WHERE user_id = ?').run(userId);
+  db.prepare('DELETE FROM plan_workouts WHERE user_id = ?').run(userId);
+
+  const insert = db.prepare(`
+    INSERT INTO plan_workouts
+      (user_id, week_number, day_of_week, workout_type, name, target_distance_km, scheduled_date, completed)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+  `);
+
+  for (const w of (workouts || [])) {
+    insert.run(userId, w.week, w.day, w.type, w.name || w.type, w.distance || null, w.scheduledDate || null);
+  }
+
+  res.json({ userId, saved: workouts?.length || 0 });
+});
+
 // GET /api/plan?userId=xxx — get the plan workouts
 app.get('/api/plan', (req, res) => {
   const userId = req.query.userId || req.session.correrUserId;
