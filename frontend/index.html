@@ -2291,11 +2291,36 @@ async function syncNow() {
     showToast('Sync failed — is Strava connected?', 'error');
   }
 
-  // Always refresh the progress section after sync attempt
-  await loadProgress();
+  // Refresh plan data (triggers matchAllActivitiesToPlan server-side) and
+  // progress section in parallel, without navigating away from current view.
+  await Promise.allSettled([refreshPlanData(), loadProgress()]);
 
   btn.innerHTML = '&#8635; Sync Now';
   btn.disabled = false;
+}
+
+// Fetch fresh plan data and update globals + visible plan widgets without
+// navigating to the plan section.
+async function refreshPlanData() {
+  if (!userId || userId === 'demo') return;
+  try {
+    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const { workouts, byWeek } = data;
+    if (!workouts) return;
+    planWorkouts = workouts;
+    planByWeek   = byWeek || {};
+    // Re-render plan widgets that are visible on the plan page
+    renderWeekCarousel();
+    renderWorkoutList(planWorkouts);
+    renderWeekProgressBar();
+    // Re-render progress widgets that use planWorkouts
+    renderProgressStats();
+    renderHeatmap();
+    renderSessionBreakdown();
+    renderUpcoming();
+  } catch (_) {}
 }
 
 // ??? DEMO FALLBACK (no backend) ???????????????????????????????????????????????
