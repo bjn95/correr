@@ -463,6 +463,21 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-chip-unit{font-size:.58rem;opacity:.65}
 .cp-chip-remove{position:absolute;top:.15rem;right:.15rem;width:13px;height:13px;background:rgba(0,0,0,.18);border:none;border-radius:50%;cursor:pointer;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:inherit;opacity:0;transition:opacity .15s;padding:0;line-height:1}
 .cp-chip:hover .cp-chip-remove{opacity:1}
+.cp-chip-settings{background:none;border:none;cursor:pointer;font-size:.65rem;opacity:.45;padding:0 .1rem;line-height:1;color:inherit;transition:opacity .15s;flex-shrink:0}
+.cp-chip-settings:hover{opacity:1}
+.cp-chip-extra{margin-top:.25rem;border-top:1px solid rgba(0,0,0,.1);padding-top:.25rem;display:flex;flex-direction:column;gap:.2rem}
+.cp-chip-pace-row{display:flex;align-items:center;gap:.2rem}
+.cp-pace-lbl{font-size:.52rem;opacity:.65;white-space:nowrap}
+.cp-pace-input{width:38px;font-size:.75rem;font-family:'DM Mono',monospace;border:none;background:rgba(0,0,0,.08);border-radius:2px;padding:.1rem .25rem;color:inherit;min-width:0}
+.cp-pace-input:focus{outline:none;background:rgba(0,0,0,.14)}
+.cp-chip-detail-input{font-size:.68rem;font-family:'DM Sans',sans-serif;border:none;background:rgba(0,0,0,.08);border-radius:2px;padding:.15rem .3rem;color:inherit;width:100%;box-sizing:border-box}
+.cp-chip-detail-input:focus{outline:none;background:rgba(0,0,0,.14)}
+.cp-presets{display:flex;flex-wrap:wrap;gap:.15rem;margin-top:.1rem}
+.cp-preset{font-size:.55rem;font-family:'DM Mono',monospace;padding:.1rem .3rem;border:1px solid rgba(0,0,0,.2);border-radius:2px;background:rgba(0,0,0,.06);cursor:pointer;color:inherit;white-space:nowrap;line-height:1.4}
+.cp-preset:hover{background:rgba(0,0,0,.14)}
+.cp-type-info{margin-top:.9rem;padding:.6rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:3px;font-size:.7rem;color:var(--muted);line-height:1.55;min-height:3.5rem;transition:opacity .2s}
+.cp-type-info-name{font-weight:700;color:var(--ink);margin-bottom:.2rem;font-size:.72rem}
+.cp-touch-ghost{position:fixed;pointer-events:none;z-index:9999;border-radius:3px;padding:.35rem .6rem;font-size:.72rem;font-weight:700;letter-spacing:.3px;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:.88;transform:scale(.97);transition:none}
 .cp-save-bar{display:flex;align-items:center;gap:1rem;margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid var(--border);flex-wrap:wrap}
 .type-rest{background:rgba(0,0,0,.04);color:var(--muted)}
 @media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:repeat(2,1fr)}.devices-grid{grid-template-columns:repeat(2,1fr)}.premium-grid{grid-template-columns:1fr}.cp-layout{grid-template-columns:1fr}}
@@ -999,7 +1014,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
            ondragover="cpTrashOver(event)" ondragleave="cpTrashLeave(event)" ondrop="cpTrashDrop(event)">
         &#128465; Drop to remove
       </div>
-      <div class="cp-tip"><strong>Tip:</strong> Drag a type onto any day cell. Click the distance number to edit it. Drag a placed workout to a new day to move it.</div>
+      <div id="cp-type-info" class="cp-type-info" style="opacity:0">
+        <div class="cp-type-info-name" id="cp-type-info-name"></div>
+        <div id="cp-type-info-body"></div>
+      </div>
+      <div class="cp-tip" style="margin-top:.75rem"><strong>Tip:</strong> Drag onto any day. Click ⚙ on a placed workout to set pace &amp; structure.</div>
     </div>
 
     <!-- Calendar -->
@@ -2153,10 +2172,28 @@ const CP_TIPS  = {
   rest:        'Rest Day — Complete rest or very light activity. Essential for adaptation and injury prevention.',
 };
 
-let cpPlan = {};          // "week-day" → { type, dist }
+const CP_PRESETS = {
+  intervals:   ['6×800m','8×400m','4×1km','10×200m','5×1km','12×300m'],
+  hills:       ['8×200m','10×1 min','6×400m','12×30s','8×1 min'],
+  fartlek:     ['6×3 min','8×2 min','10×1 min','5×4 min','30 min mixed'],
+  tempo:       ['20 min','30 min','5km','2×15 min','3×10 min'],
+  progression: ['last 3km race pace','last 5km race pace','negative split','final km sprint'],
+  strides:     ['6×20s','8×20s','4×30s','10×20s'],
+};
+const CP_DETAIL_PLACEHOLDER = {
+  intervals:'e.g. 8×400m @ 5K pace', hills:'e.g. 8×1 min hill reps',
+  fartlek:'e.g. 6×3 min hard/2 min easy', tempo:'e.g. 20 min continuous',
+  progression:'e.g. last 3km at race pace', strides:'e.g. 6×20s strides',
+  easy:'e.g. recovery focus', long:'e.g. easy throughout',
+};
+const CP_HAS_DETAIL = new Set(['intervals','hills','fartlek','tempo','progression','strides','easy','long']);
+
+let cpPlan = {};          // "week-day" → { type, dist, pace, detail }
 let cpWeeksCount = 8;
 let cpDrag = null;        // { from:'palette'|'cell', type, key? }
-let cpCopiedWeek = null;  // { Mon:{type,dist}, Tue:{type,dist}, ... } snapshot
+let cpCopiedWeek = null;  // snapshot for copy/paste
+let cpExpanded = new Set(); // keys of chips with settings panel open
+let cpTouchGhost = null;
 
 function showCustomPlan() {
   ['hero','how-it-works','features-section','devices-section','survey-section',
@@ -2182,10 +2219,25 @@ function buildCpPalette() {
   document.getElementById('cp-palette').innerHTML = CP_TYPES.map(({ type, label, icon }) =>
     `<div class="cp-palette-item workout-type type-${type}" draggable="true" data-type="${type}"
           title="${CP_TIPS[type] || label}"
-          ondragstart="cpPaletteDragStart(event,'${type}')" ondragend="cpDragEnd(event)">
+          ondragstart="cpPaletteDragStart(event,'${type}')" ondragend="cpDragEnd(event)"
+          ontouchstart="cpPaletteTouchStart(event,'${type}')"
+          onmouseenter="cpShowTypeInfo('${type}','${label}')" onmouseleave="cpHideTypeInfo()">
       ${icon} ${label}
     </div>`
   ).join('');
+}
+
+function cpShowTypeInfo(type, label) {
+  const el = document.getElementById('cp-type-info');
+  if (!el) return;
+  document.getElementById('cp-type-info-name').textContent = label;
+  const body = CP_TIPS[type] ? CP_TIPS[type].replace(/^[^—]+— ?/, '') : '';
+  document.getElementById('cp-type-info-body').textContent = body;
+  el.style.opacity = '1';
+}
+function cpHideTypeInfo() {
+  const el = document.getElementById('cp-type-info');
+  if (el) el.style.opacity = '0';
 }
 
 function renderCustomCalendar() {
@@ -2220,8 +2272,11 @@ function renderCustomCalendar() {
                     ondragover="cpCellOver(event)" ondragleave="cpCellLeave(event)"
                     ondrop="cpCellDrop(event,${w},'${day}')">`;
       if (wo) {
+        const isExpanded = cpExpanded.has(key);
+        const presets = CP_PRESETS[wo.type] || [];
         html += `<div class="cp-chip workout-type type-${wo.type}" draggable="true"
-                      ondragstart="cpChipDragStart(event,'${key}')" ondragend="cpDragEnd(event)">
+                      ondragstart="cpChipDragStart(event,'${key}')" ondragend="cpDragEnd(event)"
+                      ontouchstart="cpChipTouchStart(event,'${key}')">
           <span class="cp-chip-type">${wo.type}</span>
           ${wo.type !== 'rest' ? `<div class="cp-chip-dist-row">
             <input class="cp-chip-dist" type="number" min="0" max="99" step="0.5"
@@ -2229,7 +2284,22 @@ function renderCustomCalendar() {
               onclick="event.stopPropagation()"
               oninput="cpSetDist('${key}',this.value)">
             <span class="cp-chip-unit">km</span>
-          </div>` : ''}
+            <button class="cp-chip-settings" onclick="cpToggleExpand('${key}');event.stopPropagation()" title="Configure pace &amp; structure">&#9881;</button>
+          </div>
+          ${isExpanded ? `<div class="cp-chip-extra" onclick="event.stopPropagation()">
+            <div class="cp-chip-pace-row">
+              <span class="cp-pace-lbl">pace</span>
+              <input class="cp-pace-input" type="text" placeholder="4:30"
+                value="${wo.pace || ''}" oninput="cpSetPace('${key}',this.value)">
+              <span class="cp-pace-lbl">/km</span>
+            </div>
+            ${CP_HAS_DETAIL.has(wo.type) ? `<input class="cp-chip-detail-input" type="text"
+              placeholder="${CP_DETAIL_PLACEHOLDER[wo.type] || 'structure...'}"
+              value="${wo.detail || ''}" oninput="cpSetDetail('${key}',this.value)">
+            ${presets.length ? `<div class="cp-presets">${presets.map(p =>
+              `<button class="cp-preset" onclick="cpApplyPreset('${key}','${p}');event.stopPropagation()">${p}</button>`
+            ).join('')}</div>` : ''}` : ''}
+          </div>` : ''}` : ''}
           <button class="cp-chip-remove" onclick="cpRemove('${key}');event.stopPropagation()" title="Remove">&#10005;</button>
         </div>`;
       } else {
@@ -2281,15 +2351,90 @@ function cpTrashDrop(e) {
   cpDrag = null;
 }
 
-function cpRemove(key)           { delete cpPlan[key]; renderCustomCalendar(); }
+function cpRemove(key)           { delete cpPlan[key]; cpExpanded.delete(key); renderCustomCalendar(); }
 function cpSetDist(key, val)     { if (cpPlan[key]) cpPlan[key].dist = parseFloat(val) || null; }
-function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; renderCustomCalendar(); } }
+function cpSetPace(key, val)     { if (cpPlan[key]) cpPlan[key].pace = val.trim(); }
+function cpSetDetail(key, val)   { if (cpPlan[key]) { cpPlan[key].detail = val; const el = document.querySelector(`.cp-chip-detail-input[oninput*="${key}"]`); if (el) el.value = val; } }
+function cpApplyPreset(key, val) { if (cpPlan[key]) { cpPlan[key].detail = val; renderCustomCalendar(); } }
+function cpToggleExpand(key)     { cpExpanded.has(key) ? cpExpanded.delete(key) : cpExpanded.add(key); renderCustomCalendar(); }
+function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; cpExpanded.clear(); renderCustomCalendar(); } }
+
+function parsePaceStr(str) {
+  if (!str) return null;
+  const m = str.match(/^(\d+):([0-5]\d)$/);
+  return m ? parseInt(m[1]) + parseInt(m[2]) / 60 : null;
+}
+
+// ── Touch drag-and-drop (tablet / mobile) ─────────────────────────────────────
+
+function cpPaletteTouchStart(e, type) {
+  e.preventDefault();
+  cpDrag = { from: 'palette', type };
+  cpMakeTouchGhost(e, CP_NAMES[type] || type, `workout-type type-${type}`);
+}
+function cpChipTouchStart(e, key) {
+  e.preventDefault(); e.stopPropagation();
+  cpDrag = { from: 'cell', key, type: cpPlan[key]?.type };
+  cpMakeTouchGhost(e, CP_NAMES[cpPlan[key]?.type] || key, `workout-type type-${cpPlan[key]?.type}`);
+}
+function cpMakeTouchGhost(e, label, cls) {
+  if (cpTouchGhost) cpTouchGhost.remove();
+  const t = e.touches[0];
+  cpTouchGhost = document.createElement('div');
+  cpTouchGhost.className = `cp-touch-ghost ${cls}`;
+  cpTouchGhost.textContent = label;
+  cpTouchGhost.style.left = (t.clientX - 40) + 'px';
+  cpTouchGhost.style.top  = (t.clientY - 18) + 'px';
+  document.body.appendChild(cpTouchGhost);
+}
+
+document.addEventListener('touchmove', e => {
+  if (!cpTouchGhost) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  cpTouchGhost.style.left = (t.clientX - 40) + 'px';
+  cpTouchGhost.style.top  = (t.clientY - 18) + 'px';
+  cpTouchGhost.style.pointerEvents = 'none';
+  document.querySelectorAll('.cp-cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+  document.getElementById('cp-trash')?.classList.remove('drag-over');
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  el?.closest('.cp-cell')?.classList.add('drag-over');
+  if (el?.closest('#cp-trash')) document.getElementById('cp-trash').classList.add('drag-over');
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  if (!cpTouchGhost) return;
+  const t = e.changedTouches[0];
+  cpTouchGhost.remove(); cpTouchGhost = null;
+  document.querySelectorAll('.cp-cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+  document.getElementById('cp-trash')?.classList.remove('drag-over');
+  if (!cpDrag) return;
+  const under = document.elementFromPoint(t.clientX, t.clientY);
+  const cell  = under?.closest('.cp-cell');
+  const trash = under?.closest('#cp-trash');
+  if (cell) {
+    const parts = cell.id.replace('cpcell-', '').split('-');
+    const key   = `${parseInt(parts[0])}-${parts[1]}`;
+    if (cpDrag.from === 'palette') {
+      cpPlan[key] = { type: cpDrag.type, dist: CP_DEFAULT_DIST[cpDrag.type] };
+    } else if (cpDrag.from === 'cell' && cpDrag.key !== key) {
+      cpPlan[key] = { ...cpPlan[cpDrag.key] };
+      delete cpPlan[cpDrag.key];
+      cpExpanded.delete(cpDrag.key);
+    }
+    renderCustomCalendar();
+  } else if (trash && cpDrag.from === 'cell') {
+    delete cpPlan[cpDrag.key]; cpExpanded.delete(cpDrag.key);
+    renderCustomCalendar();
+  }
+  cpDrag = null;
+});
 
 function cpCopyWeek(w) {
   cpCopiedWeek = {};
   CP_DAYS.forEach(day => {
     const wo = cpPlan[`${w}-${day}`];
-    if (wo) cpCopiedWeek[day] = { ...wo };
+    if (wo) cpCopiedWeek[day] = { ...wo };  // includes pace+detail
   });
   showToast(`Week ${w} copied`, 'success');
   renderCustomCalendar();
@@ -2320,7 +2465,7 @@ async function saveCustomPlan() {
     const scheduledDate = (startMs && dayOff >= 0)
       ? new Date(startMs + (week - 1) * 7 * 86400000 + dayOff * 86400000).toISOString().slice(0, 10)
       : null;
-    return { week, day, type: wo.type, name: CP_NAMES[wo.type] || wo.type, distance: wo.dist || null, scheduledDate };
+    return { week, day, type: wo.type, name: CP_NAMES[wo.type] || wo.type, distance: wo.dist || null, scheduledDate, pace: parsePaceStr(wo.pace), detail: wo.detail || null };
   });
 
   if (!workouts.length) { showToast('Add at least one workout first', 'error'); return; }

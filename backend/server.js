@@ -114,13 +114,13 @@ app.post('/api/plan/custom', (req, res) => {
 
     const insert = db.prepare(`
       INSERT INTO plan_workouts
-        (user_id, week_number, day_of_week, workout_type, name, target_distance_km, scheduled_date, completed)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+        (user_id, week_number, day_of_week, workout_type, name, description, target_distance_km, target_pace_min_km, scheduled_date, completed)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
 
     const saveWorkouts = db.transaction(() => {
       for (const w of (workouts || [])) {
-        insert.run(userId, w.week || 1, w.day, w.type, w.name || w.type, w.distance || null, w.scheduledDate || null);
+        insert.run(userId, w.week || 1, w.day, w.type, w.name || w.type, w.detail || null, w.distance || null, w.pace || null, w.scheduledDate || null);
       }
     });
     saveWorkouts();
