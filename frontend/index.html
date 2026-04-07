@@ -1329,7 +1329,7 @@ function updateStatusChips() {
 
 // ??? SURVEY ??????????????????????????????????????????????????????????????????
 function startSurvey() {
-  hide('hero'); hide('how-it-works');
+  hideAll();
   show('survey-section');
   scrollTop();
   // Always reset to q1 so the pace question (and all others) are seen in order
@@ -1671,16 +1671,10 @@ async function loadPlan(planId) {
 }
 
 function showMyPlan() {
-  ['hero','how-it-works','features-section','devices-section','survey-section',
-   'generating','progress-section','profile-section','my-plans-section',
-   'premium-section','custom-plan-section'].forEach(id => hide(id));
+  hideAll();
   show('plan-section');
   scrollTop();
 }
-
-const ALL_SECTIONS = ['hero','how-it-works','features-section','devices-section','survey-section',
-  'generating','plan-section','progress-section','profile-section','my-plans-section',
-  'premium-section','custom-plan-section'];
 
 async function showMyPlans() {
   ALL_SECTIONS.forEach(id => hide(id));
@@ -2252,8 +2246,7 @@ async function toggleWorkout(id) {
 
 // ── Premium ───────────────────────────────────────────────────────────────────
 function showPremium() {
-  ['hero','how-it-works','features-section','devices-section','survey-section',
-   'plan-section','progress-section','profile-section','generating'].forEach(id => hide(id));
+  hideAll();
   show('premium-section');
   scrollTop();
 }
@@ -2340,8 +2333,7 @@ let cpCopiedWeek = null;  // snapshot for copy/paste
 let cpTouchGhost = null;
 
 function showCustomPlan() {
-  ['hero','how-it-works','features-section','devices-section','survey-section',
-   'plan-section','progress-section','profile-section','premium-section','generating'].forEach(id => hide(id));
+  hideAll();
   show('custom-plan-section');
   buildCpPalette();
   renderCustomCalendar();
@@ -2691,7 +2683,7 @@ async function saveCustomPlan() {
 
 // ??? PROGRESS ?????????????????????????????????????????????????????????????????
 async function showProgress() {
-  hide('hero'); hide('how-it-works'); hide('plan-section');
+  hideAll();
   show('progress-section');
   scrollTop();
   renderProgressStats();
@@ -3020,8 +3012,7 @@ function renderDemoProgress() {
 
 // ??? PROFILE ?????????????????????????????????????????????????????????????????
 async function showProfile() {
-  ['hero','how-it-works','features-section','devices-section','survey-section',
-   'plan-section','progress-section','generating'].forEach(id => hide(id));
+  hideAll();
   show('profile-section');
   scrollTop();
   await loadProfile();
@@ -3274,8 +3265,7 @@ async function finishRename() {
 }
 
 function goHome() {
-  ['features-section','devices-section','survey-section','plan-section',
-   'progress-section','generating','profile-section'].forEach(id => hide(id));
+  hideAll();
   show('hero');
   show('how-it-works');
   scrollTop();
@@ -3285,9 +3275,14 @@ function goHome() {
 function show(id) { const el=document.getElementById(id); if(el) el.style.display='block'; }
 function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function hideAll() { ALL_SECTIONS.forEach(id => hide(id)); }
+
+const ALL_SECTIONS = ['hero','how-it-works','features-section','devices-section','survey-section',
+  'generating','plan-section','progress-section','profile-section','my-plans-section',
+  'premium-section','custom-plan-section'];
 
 function showSection(section) {
-  ['hero','how-it-works','features-section','devices-section','survey-section','plan-section','progress-section','generating','profile-section'].forEach(id => hide(id));
+  hideAll();
   if (section === 'features') { show('features-section'); scrollTop(); }
   else if (section === 'devices') { show('devices-section'); scrollTop(); }
   else if (section === 'plans') {
