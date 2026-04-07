@@ -76,7 +76,7 @@ function deriveTargetPaces(paceDistance, paceTimeSecs) {
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 
-function buildOrUpdatePlan(userId, survey) {
+function buildOrUpdatePlan(userId, survey, planId) {
   const {
     goal          = 'half',
     longestRun    = '5to10',
@@ -113,13 +113,13 @@ function buildOrUpdatePlan(userId, survey) {
   const longRunKms = buildLongRunSchedule(startLong, peakLong, weeks, isRacePlan);
 
   const startDate = nextMonday();
-  db.prepare('DELETE FROM plan_workouts WHERE user_id = ?').run(userId);
+  db.prepare('DELETE FROM plan_workouts WHERE plan_id = ?').run(planId);
 
   const insert = db.prepare(`
     INSERT INTO plan_workouts (
-      user_id, week_number, day_of_week, workout_type, name, description,
+      user_id, plan_id, week_number, day_of_week, workout_type, name, description,
       target_distance_km, target_pace_min_km, scheduled_date
-    ) VALUES (?,?,?,?,?,?,?,?,?)
+    ) VALUES (?,?,?,?,?,?,?,?,?,?)
   `);
 
   const taperWeeks = isRacePlan ? 3 : 2;
@@ -146,7 +146,7 @@ function buildOrUpdatePlan(userId, survey) {
     });
 
     for (const s of sessions) {
-      insert.run(userId, w, s.dayOfWeek, s.type, s.name, s.description,
+      insert.run(userId, planId, w, s.dayOfWeek, s.type, s.name, s.description,
                  s.distanceKm, s.paceMinKm, s.date);
     }
   }
@@ -156,10 +156,10 @@ function buildOrUpdatePlan(userId, survey) {
   }
 
   const totalRuns = db.prepare(
-    "SELECT COUNT(*) as c FROM plan_workouts WHERE user_id = ? AND workout_type NOT IN ('rest','race')"
-  ).get(userId).c;
+    "SELECT COUNT(*) as c FROM plan_workouts WHERE plan_id = ? AND workout_type NOT IN ('rest','race')"
+  ).get(planId).c;
 
-  return { weeks, totalRuns, peakLongRun: peakLong, startDate };
+  return { weeks, totalRuns, peakLongRun: peakLong, startDate, planId };
 }
 
 // ── Long run schedule ─────────────────────────────────────────────────────────

@@ -485,6 +485,22 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-touch-ghost{position:fixed;pointer-events:none;z-index:9999;border-radius:3px;padding:.35rem .6rem;font-size:.72rem;font-weight:700;letter-spacing:.3px;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:.88;transform:scale(.97);transition:none}
 .cp-save-bar{display:flex;align-items:center;gap:1rem;margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid var(--border);flex-wrap:wrap}
 .type-rest{background:rgba(0,0,0,.04);color:var(--muted)}
+/* My Plans page */
+.myplans-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;padding-bottom:1.5rem;border-bottom:2px solid var(--ink);margin-bottom:2rem}
+.myplans-actions{display:flex;gap:.75rem;flex-wrap:wrap}
+.myplans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1.25rem}
+.plan-card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:1.25rem;display:flex;flex-direction:column;gap:.65rem;transition:border-color .15s,box-shadow .15s}
+.plan-card:hover{border-color:var(--ink);box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.plan-card-header{display:flex;align-items:center;justify-content:space-between}
+.plan-card-name{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;line-height:1.1;color:var(--ink)}
+.plan-card-meta{font-size:.75rem;color:var(--muted)}
+.plan-card-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.plan-card-bar{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+.plan-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:.25rem}
+.plan-card-date{font-size:.68rem;color:var(--muted)}
+.plan-card-del{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:.2rem .35rem;border-radius:2px;transition:color .15s,background .15s;line-height:1}
+.plan-card-del:hover{color:#e53935;background:rgba(229,57,53,.08)}
+.badge-ink{background:var(--ink);color:#fff;font-size:.62rem;font-weight:700;padding:.2rem .5rem;border-radius:2px;letter-spacing:.5px;text-transform:uppercase}
 @media(max-width:900px){#hero{grid-template-columns:1fr}.hero-right{min-height:300px}.plan-summary{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(4,1fr)}.integration-grid{grid-template-columns:1fr}.progress-grid{grid-template-columns:1fr}.how-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:repeat(2,1fr)}.devices-grid{grid-template-columns:repeat(2,1fr)}.premium-grid{grid-template-columns:1fr}.cp-layout{grid-template-columns:1fr}}
 @media(max-width:700px){nav{padding:1rem 1.5rem}.nav-links{display:none}.nav-status{display:none}.nav-hamburger{display:flex}.hero-left{padding:3rem 1.5rem}.week-grid{grid-template-columns:repeat(3,1fr)}footer{grid-template-columns:1fr}.premium-grid{grid-template-columns:1fr}.compare-header>div:last-child,.compare-row>div:last-child{display:none}.compare-header{grid-template-columns:1fr 100px}.compare-row{grid-template-columns:1fr 100px}}
 </style>
@@ -501,7 +517,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
       <span class="dot"></span> Strava
     </div>
     <a href="#" id="nav-premium" onclick="showPremium();return false" class="nav-premium-btn">Go Premium</a>
-    <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">My AI Smart Plan</a>
+    <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlans();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">My Plans</a>
     <a href="#" id="nav-get-started" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">AI Smart Plan</a>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
@@ -514,7 +530,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <a href="#" onclick="showSection('devices');closeMobileNav();return false">Devices</a>
   <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Custom Plan</a>
   <a href="#" onclick="showPremium();closeMobileNav();return false" class="mobile-nav-premium">Go Premium</a>
-  <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlan();closeMobileNav();return false">My AI Smart Plan</a>
+  <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlans();closeMobileNav();return false">My Plans</a>
   <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">AI Smart Plan</a>
 </div>
 
@@ -804,6 +820,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 
 <!-- PLAN -->
 <section id="plan-section">
+  <a href="#" class="premium-back" onclick="showMyPlans();return false">&larr; All Plans</a>
   <div class="plan-header">
     <div>
       <span class="section-kicker">Your Training Programme</span>
@@ -920,6 +937,23 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 </section>
 
 <!-- PROFILE -->
+<!-- MY PLANS -->
+<section id="my-plans-section" style="display:none">
+  <div style="max-width:1000px;margin:0 auto;padding:3.5rem 2rem 6rem">
+    <div class="myplans-header">
+      <div>
+        <span class="section-kicker">Your Library</span>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,5vw,3.2rem);line-height:1;margin-top:.2rem">Training Plans</h1>
+      </div>
+      <div class="myplans-actions">
+        <button class="btn-secondary" onclick="showCustomPlan()">+ Custom Plan</button>
+        <button class="btn-primary" onclick="startSurvey()">+ AI Smart Plan</button>
+      </div>
+    </div>
+    <div id="my-plans-grid" class="myplans-grid"></div>
+  </div>
+</section>
+
 <section id="profile-section">
   <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem">
     <button class="btn-back" onclick="history.back()" style="font-size:.8rem;padding:.5rem 1rem">&larr; Back</button>
@@ -1188,7 +1222,8 @@ const API = 'https://correr-production.up.railway.app';
 
 // ??? STATE ???????????????????????????????????????????????????????????????????
 const answers = { q1: null, q2: null, q7: null, planName: '', preferredDays: [], longRunDay: '', paceDistance: null, paceTimeSecs: null, raceDate: null, targetTimeSecs: null, currentRunDays: null };
-let userId = localStorage.getItem('correr_user_id');
+let userId       = localStorage.getItem('correr_user_id');
+let activePlanId = localStorage.getItem('correr_plan_id') ? parseInt(localStorage.getItem('correr_plan_id')) : null;
 let connectionStatus = { strava: false };
 let planByWeek = {};
 let planWorkouts = [];
@@ -1601,10 +1636,11 @@ async function submitSurvey() {
     const data = await res.json();
     userId = data.userId;
     localStorage.setItem('correr_user_id', String(userId));
+    if (data.planId) { activePlanId = data.planId; localStorage.setItem('correr_plan_id', String(activePlanId)); }
 
     setTimeout(() => {
       hide('generating');
-      loadPlan();
+      loadPlan(activePlanId);
     }, 800);
 
   } catch (err) {
@@ -1618,10 +1654,16 @@ async function submitSurvey() {
 }
 
 // ??? LOAD PLAN FROM BACKEND ???????????????????????????????????????????????????
-async function loadPlan() {
+async function loadPlan(planId) {
+  const pid = planId ?? activePlanId;
+  const pidParam = pid ? `&planId=${pid}` : '';
   try {
-    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    const res = await fetch(`${API}/api/plan?userId=${userId}${pidParam}`, { credentials: 'include' });
     const data = await res.json();
+    if (data.summary?.planId) {
+      activePlanId = data.summary.planId;
+      localStorage.setItem('correr_plan_id', String(activePlanId));
+    }
     renderPlan(data.summary, data.workouts, data.byWeek, data.survey?.raceDate || null);
   } catch (err) {
     showDemoPlan();
@@ -1629,14 +1671,88 @@ async function loadPlan() {
 }
 
 function showMyPlan() {
-  if (!planWorkouts.length) {
-    startSurvey();
-    return;
-  }
   ['hero','how-it-works','features-section','devices-section','survey-section',
-   'generating','progress-section','profile-section'].forEach(id => hide(id));
+   'generating','progress-section','profile-section','my-plans-section',
+   'premium-section','custom-plan-section'].forEach(id => hide(id));
   show('plan-section');
   scrollTop();
+}
+
+const ALL_SECTIONS = ['hero','how-it-works','features-section','devices-section','survey-section',
+  'generating','plan-section','progress-section','profile-section','my-plans-section',
+  'premium-section','custom-plan-section'];
+
+async function showMyPlans() {
+  ALL_SECTIONS.forEach(id => hide(id));
+  show('my-plans-section');
+  scrollTop();
+  await loadMyPlans();
+}
+
+async function loadMyPlans() {
+  const grid = document.getElementById('my-plans-grid');
+  if (!userId || userId === 'demo') {
+    grid.innerHTML = '<p style="color:var(--muted);font-size:.9rem">Create an AI Smart Plan or Custom Plan to get started.</p>';
+    return;
+  }
+  grid.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Loading…</p>';
+  try {
+    const res = await fetch(`${API}/api/plans?userId=${userId}`, { credentials: 'include' });
+    const plans = await res.json();
+    renderMyPlans(plans);
+  } catch {
+    grid.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Could not load plans.</p>';
+  }
+}
+
+function renderMyPlans(plans) {
+  const grid = document.getElementById('my-plans-grid');
+  if (!plans.length) {
+    grid.innerHTML = '<p style="grid-column:1/-1;color:var(--muted);font-size:.9rem">No plans yet — create one above.</p>';
+    return;
+  }
+  grid.innerHTML = plans.map(p => {
+    const pct = p.totalRuns ? Math.round(p.completed / p.totalRuns * 100) : 0;
+    const isAi = p.type === 'ai';
+    const typeLabel = isAi ? 'AI Smart Plan' : 'Custom Plan';
+    const badgeCls  = isAi ? 'badge badge-accent' : 'badge badge-ink';
+    const date = new Date(p.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const active = p.id === activePlanId ? ' style="border-color:var(--accent)"' : '';
+    return `<div class="plan-card"${active}>
+      <div class="plan-card-header">
+        <span class="${badgeCls}">${typeLabel}</span>
+        <button class="plan-card-del" onclick="deletePlan(${p.id})" title="Delete">&#10005;</button>
+      </div>
+      <div class="plan-card-name">${p.name}</div>
+      <div class="plan-card-meta">${p.weeks} week${p.weeks !== 1?'s':''} &middot; ${p.totalRuns} runs &middot; ${pct}% done</div>
+      <div class="plan-card-bar-wrap"><div class="plan-card-bar" style="width:${pct}%"></div></div>
+      <div class="plan-card-foot">
+        <span class="plan-card-date">${date}</span>
+        <button class="btn-primary" style="font-size:.78rem;padding:.4rem .9rem" onclick="viewPlan(${p.id})">View Plan &rarr;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function viewPlan(planId) {
+  activePlanId = planId;
+  localStorage.setItem('correr_plan_id', String(planId));
+  await loadPlan(planId);
+}
+
+async function deletePlan(planId) {
+  if (!confirm('Delete this plan? This cannot be undone.')) return;
+  try {
+    await fetch(`${API}/api/plans/${planId}`, {
+      method: 'DELETE', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    if (activePlanId === planId) { activePlanId = null; localStorage.removeItem('correr_plan_id'); }
+    await loadMyPlans();
+  } catch {
+    showToast('Could not delete plan', 'error');
+  }
 }
 
 async function editPlan() {
@@ -2559,6 +2675,7 @@ async function saveCustomPlan() {
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     userId = data.userId;
     localStorage.setItem('correr_user_id', String(userId));
+    if (data.planId) { activePlanId = data.planId; localStorage.setItem('correr_plan_id', String(activePlanId)); }
     saveOk = true;
   } catch (err) {
     showToast(`Could not save plan: ${err.message}`, 'error');
@@ -2568,7 +2685,7 @@ async function saveCustomPlan() {
     statusEl.textContent = '';
     showToast('Plan saved!', 'success');
     hide('custom-plan-section');
-    await loadPlan();
+    await showMyPlans();
   }
 }
 
@@ -2844,7 +2961,8 @@ async function syncNow() {
 async function refreshPlanData() {
   if (!userId || userId === 'demo') return;
   try {
-    const res = await fetch(`${API}/api/plan?userId=${userId}`, { credentials: 'include' });
+    const pidParam = activePlanId ? `&planId=${activePlanId}` : '';
+    const res = await fetch(`${API}/api/plan?userId=${userId}${pidParam}`, { credentials: 'include' });
     if (!res.ok) return;
     const data = await res.json();
     const { workouts, byWeek } = data;

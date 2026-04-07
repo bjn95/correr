@@ -65,9 +65,18 @@ db.exec(`
     UNIQUE(source, external_id)
   );
 
+  CREATE TABLE IF NOT EXISTS plans (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    name       TEXT NOT NULL DEFAULT 'My Plan',
+    type       TEXT NOT NULL DEFAULT 'ai',   -- 'ai' | 'custom'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS plan_workouts (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id         INTEGER NOT NULL REFERENCES users(id),
+    plan_id         INTEGER REFERENCES plans(id),
     week_number     INTEGER NOT NULL,
     day_of_week     TEXT NOT NULL,   -- Mon | Tue | Wed | Thu | Fri | Sat | Sun
     workout_type    TEXT NOT NULL,   -- easy | tempo | intervals | long | rest
@@ -83,6 +92,26 @@ db.exec(`
 `);
 
 // ── Migrations (safe to run on existing DBs) ──────────────────────────────────
+for (const sql of [
+  'ALTER TABLE plan_workouts ADD COLUMN plan_id INTEGER REFERENCES plans(id)',
+]) {
+  try { db.exec(sql); } catch (_) { /* column already exists */ }
+}
+
+// Back-fill: for users with workouts but no plans record, create one and link
+try {
+  const orphans = db.prepare('SELECT DISTINCT user_id FROM plan_workouts WHERE plan_id IS NULL').all();
+  for (const { user_id } of orphans) {
+    const user = db.prepare('SELECT plan_name FROM users WHERE id = ?').get(user_id);
+    if (!user) continue;
+    const existing = db.prepare('SELECT id FROM plans WHERE user_id = ? AND type = ?').get(user_id, 'ai');
+    const planId = existing
+      ? existing.id
+      : db.prepare('INSERT INTO plans (user_id, name, type) VALUES (?,?,?)').run(user_id, user.plan_name || 'AI Smart Plan', 'ai').lastInsertRowid;
+    db.prepare('UPDATE plan_workouts SET plan_id = ? WHERE user_id = ? AND plan_id IS NULL').run(planId, user_id);
+  }
+} catch (_) {}
+
 for (const sql of [
   'ALTER TABLE users ADD COLUMN age INTEGER',
   'ALTER TABLE users ADD COLUMN target_race_name TEXT',

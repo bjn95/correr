@@ -86,9 +86,19 @@ app.post('/api/plan', (req, res) => {
   }
 
   req.session.correrUserId = userId;
-  const plan = buildOrUpdatePlan(userId, { goal, longestRun, days, timeline, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, planName });
 
-  res.json({ userId, ...plan });
+  // Find or create the user's single AI plan record
+  let aiPlan = db.prepare('SELECT id FROM plans WHERE user_id = ? AND type = ? ORDER BY created_at ASC LIMIT 1').get(userId, 'ai');
+  if (!aiPlan) {
+    const r = db.prepare('INSERT INTO plans (user_id, name, type) VALUES (?,?,?)').run(userId, planName || 'AI Smart Plan', 'ai');
+    aiPlan = { id: r.lastInsertRowid };
+  } else if (planName) {
+    db.prepare('UPDATE plans SET name = ? WHERE id = ?').run(planName, aiPlan.id);
+  }
+
+  const plan = buildOrUpdatePlan(userId, { goal, longestRun, days, timeline, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, planName }, aiPlan.id);
+
+  res.json({ userId, planId: aiPlan.id, ...plan });
 });
 
 // POST /api/plan/custom — save a manually designed plan
@@ -108,31 +118,31 @@ app.post('/api/plan/custom', (req, res) => {
     }
     req.session.correrUserId = userId;
 
-    // Replace all plan workouts with the custom ones
-    db.prepare('UPDATE plan_workouts SET completed = 0, linked_activity_id = NULL WHERE user_id = ?').run(userId);
-    db.prepare('DELETE FROM plan_workouts WHERE user_id = ?').run(userId);
+    // Each custom plan save creates a fresh plan record
+    const planRecord = db.prepare('INSERT INTO plans (user_id, name, type) VALUES (?,?,?)').run(userId, planName || 'Custom Plan', 'custom');
+    const planId = planRecord.lastInsertRowid;
 
     const insert = db.prepare(`
       INSERT INTO plan_workouts
-        (user_id, week_number, day_of_week, workout_type, name, description, target_distance_km, target_pace_min_km, scheduled_date, completed)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        (user_id, plan_id, week_number, day_of_week, workout_type, name, description, target_distance_km, target_pace_min_km, scheduled_date, completed)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
 
     const saveWorkouts = db.transaction(() => {
       for (const w of (workouts || [])) {
-        insert.run(userId, w.week || 1, w.day, w.type, w.name || w.type, w.detail || null, w.distance || null, w.pace || null, w.scheduledDate || null);
+        insert.run(userId, planId, w.week || 1, w.day, w.type, w.name || w.type, w.detail || null, w.distance || null, w.pace || null, w.scheduledDate || null);
       }
     });
     saveWorkouts();
 
-    res.json({ userId, saved: workouts?.length || 0 });
+    res.json({ userId, planId, saved: workouts?.length || 0 });
   } catch (err) {
     console.error('POST /api/plan/custom error:', err);
     res.status(500).json({ error: err.message || 'Failed to save plan' });
   }
 });
 
-// GET /api/plan?userId=xxx — get the plan workouts
+// GET /api/plan?userId=xxx&planId=xxx — get plan workouts
 app.get('/api/plan', (req, res) => {
   const userId = req.query.userId || req.session.correrUserId;
   if (!userId) return res.status(400).json({ error: 'userId required' });
@@ -140,20 +150,29 @@ app.get('/api/plan', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
+  // Resolve which plan to load
+  let planId = req.query.planId || null;
+  if (!planId) {
+    const latest = db.prepare('SELECT id FROM plans WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(userId);
+    planId = latest?.id || null;
+  }
+
   // Auto-match any newly synced activities to plan workouts
   matchAllActivitiesToPlan(userId);
 
-  const workouts = db.prepare(`
-    SELECT pw.*,
-      a.distance_m    AS actual_distance_m,
-      a.moving_time_s AS actual_moving_time_s,
-      a.avg_pace_s_km AS actual_avg_pace_s_km,
-      a.name          AS actual_activity_name
-    FROM plan_workouts pw
-    LEFT JOIN activities a ON pw.linked_activity_id = a.id
-    WHERE pw.user_id = ?
-    ORDER BY pw.week_number, pw.scheduled_date
-  `).all(userId);
+  const workouts = planId
+    ? db.prepare(`
+        SELECT pw.*,
+          a.distance_m    AS actual_distance_m,
+          a.moving_time_s AS actual_moving_time_s,
+          a.avg_pace_s_km AS actual_avg_pace_s_km,
+          a.name          AS actual_activity_name
+        FROM plan_workouts pw
+        LEFT JOIN activities a ON pw.linked_activity_id = a.id
+        WHERE pw.plan_id = ?
+        ORDER BY pw.week_number, pw.scheduled_date
+      `).all(planId)
+    : [];
 
   // Group by week
   const byWeek = {};
@@ -162,14 +181,17 @@ app.get('/api/plan', (req, res) => {
     byWeek[w.week_number].push(w);
   }
 
+  const planRecord = planId ? db.prepare('SELECT name, type FROM plans WHERE id = ?').get(planId) : null;
   const summary = {
+    planId,
     weeks:       Math.max(...workouts.map(w => w.week_number), 0),
     totalRuns:   workouts.filter(w => w.workout_type !== 'rest').length,
     completed:   workouts.filter(w => w.completed).length,
     peakLongRun: Math.max(...workouts.filter(w => w.workout_type === 'long').map(w => w.target_distance_km), 0),
     stravaConnected: !!user.strava_access_token,
     stravaAthleteName: user.strava_athlete_name,
-    planName: user.plan_name || null,
+    planName: planRecord?.name || user.plan_name || null,
+    planType: planRecord?.type || 'ai',
   };
 
   const survey = {
@@ -186,6 +208,37 @@ app.get('/api/plan', (req, res) => {
   };
 
   res.json({ summary, workouts, byWeek, survey });
+});
+
+// GET /api/plans?userId=xxx — list all plans for a user
+app.get('/api/plans', (req, res) => {
+  const userId = req.query.userId || req.session.correrUserId;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+  const plans = db.prepare('SELECT * FROM plans WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+  const result = plans.map(p => {
+    const ws = db.prepare('SELECT week_number, workout_type, completed FROM plan_workouts WHERE plan_id = ?').all(p.id);
+    const nonRest = ws.filter(w => w.workout_type !== 'rest');
+    return {
+      id: p.id, name: p.name, type: p.type, createdAt: p.created_at,
+      weeks: ws.length ? Math.max(...ws.map(w => w.week_number)) : 0,
+      totalRuns: nonRest.length,
+      completed: ws.filter(w => w.completed).length,
+    };
+  });
+  res.json(result);
+});
+
+// DELETE /api/plans/:planId — delete a plan and its workouts
+app.delete('/api/plans/:planId', (req, res) => {
+  const planId = parseInt(req.params.planId);
+  const userId = req.body?.userId || req.session.correrUserId;
+  // Verify ownership
+  const plan = db.prepare('SELECT user_id FROM plans WHERE id = ?').get(planId);
+  if (!plan) return res.status(404).json({ error: 'Plan not found' });
+  if (userId && String(plan.user_id) !== String(userId)) return res.status(403).json({ error: 'Forbidden' });
+  db.prepare('DELETE FROM plan_workouts WHERE plan_id = ?').run(planId);
+  db.prepare('DELETE FROM plans WHERE id = ?').run(planId);
+  res.json({ ok: true });
 });
 
 // GET /api/activities?userId=xxx — activities synced from Strava/Garmin
