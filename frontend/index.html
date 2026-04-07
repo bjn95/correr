@@ -451,7 +451,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-week-btn:hover{border-color:var(--ink);color:var(--ink)}
 .cp-week-btn.cp-week-paste{border-color:var(--accent);color:var(--accent)}
 .cp-week-btn.cp-week-paste:hover{background:var(--accent);color:#fff}
-.cp-cell{min-height:68px;background:var(--card);border:1.5px solid var(--border);border-radius:3px;padding:.25rem;display:flex;align-items:stretch;transition:border-color .15s,background .15s;position:relative}
+.cp-cell{min-height:72px;background:var(--card);border:1.5px solid var(--border);border-radius:3px;padding:.25rem;display:flex;align-items:stretch;transition:border-color .15s,background .15s;position:relative}
 .cp-cell.drag-over{border-color:var(--accent);background:rgba(232,57,14,.04)}
 .cp-cell-hint{flex:1;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--border);pointer-events:none}
 .cp-chip{flex:1;border-radius:2px;padding:.3rem .3rem .25rem;display:flex;flex-direction:column;gap:.15rem;position:relative;cursor:grab;min-width:0}
@@ -463,9 +463,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-chip-unit{font-size:.58rem;opacity:.65}
 .cp-chip-remove{position:absolute;top:.15rem;right:.15rem;width:13px;height:13px;background:rgba(0,0,0,.18);border:none;border-radius:50%;cursor:pointer;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:inherit;opacity:0;transition:opacity .15s;padding:0;line-height:1}
 .cp-chip:hover .cp-chip-remove{opacity:1}
-.cp-chip-settings{background:none;border:none;cursor:pointer;font-size:.65rem;opacity:.45;padding:0 .1rem;line-height:1;color:inherit;transition:opacity .15s;flex-shrink:0}
-.cp-chip-settings:hover{opacity:1}
-.cp-chip-extra{margin-top:.25rem;border-top:1px solid rgba(0,0,0,.1);padding-top:.25rem;display:flex;flex-direction:column;gap:.2rem}
+.cp-chip-extra{margin-top:.3rem;border-top:1px solid rgba(0,0,0,.1);padding-top:.3rem;display:flex;flex-direction:column;gap:.25rem}
 .cp-chip-pace-row{display:flex;align-items:center;gap:.2rem}
 .cp-pace-lbl{font-size:.52rem;opacity:.65;white-space:nowrap}
 .cp-pace-input{width:38px;font-size:.75rem;font-family:'DM Mono',monospace;border:none;background:rgba(0,0,0,.08);border-radius:2px;padding:.1rem .25rem;color:inherit;min-width:0}
@@ -1018,7 +1016,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
         <div class="cp-type-info-name" id="cp-type-info-name"></div>
         <div id="cp-type-info-body"></div>
       </div>
-      <div class="cp-tip" style="margin-top:.75rem"><strong>Tip:</strong> Drag onto any day. Click ⚙ on a placed workout to set pace &amp; structure.</div>
+      <div class="cp-tip" style="margin-top:.75rem"><strong>Tip:</strong> Drag onto any day. Edit km, pace, and structure directly on each workout.</div>
     </div>
 
     <!-- Calendar -->
@@ -2192,7 +2190,6 @@ let cpPlan = {};          // "week-day" → { type, dist, pace, detail }
 let cpWeeksCount = 8;
 let cpDrag = null;        // { from:'palette'|'cell', type, key? }
 let cpCopiedWeek = null;  // snapshot for copy/paste
-let cpExpanded = new Set(); // keys of chips with settings panel open
 let cpTouchGhost = null;
 
 function showCustomPlan() {
@@ -2272,34 +2269,33 @@ function renderCustomCalendar() {
                     ondragover="cpCellOver(event)" ondragleave="cpCellLeave(event)"
                     ondrop="cpCellDrop(event,${w},'${day}')">`;
       if (wo) {
-        const isExpanded = cpExpanded.has(key);
         const presets = CP_PRESETS[wo.type] || [];
+        const showDetail = CP_HAS_DETAIL.has(wo.type);
         html += `<div class="cp-chip workout-type type-${wo.type}" draggable="true"
                       ondragstart="cpChipDragStart(event,'${key}')" ondragend="cpDragEnd(event)"
                       ontouchstart="cpChipTouchStart(event,'${key}')">
           <span class="cp-chip-type">${wo.type}</span>
           ${wo.type !== 'rest' ? `<div class="cp-chip-dist-row">
-            <input class="cp-chip-dist" type="number" min="0" max="99" step="0.5"
-              value="${wo.dist ?? ''}" placeholder="—"
+            <input class="cp-chip-dist" type="number" min="0" max="99" step="1"
+              value="${wo.dist != null ? Math.round(wo.dist) : ''}" placeholder="—"
               onclick="event.stopPropagation()"
               oninput="cpSetDist('${key}',this.value)">
             <span class="cp-chip-unit">km</span>
-            <button class="cp-chip-settings" onclick="cpToggleExpand('${key}');event.stopPropagation()" title="Configure pace &amp; structure">&#9881;</button>
           </div>
-          ${isExpanded ? `<div class="cp-chip-extra" onclick="event.stopPropagation()">
+          <div class="cp-chip-extra" onclick="event.stopPropagation()">
             <div class="cp-chip-pace-row">
               <span class="cp-pace-lbl">pace</span>
               <input class="cp-pace-input" type="text" placeholder="4:30"
                 value="${wo.pace || ''}" oninput="cpSetPace('${key}',this.value)">
               <span class="cp-pace-lbl">/km</span>
             </div>
-            ${CP_HAS_DETAIL.has(wo.type) ? `<input class="cp-chip-detail-input" type="text"
+            ${showDetail ? `<input class="cp-chip-detail-input" type="text"
               placeholder="${CP_DETAIL_PLACEHOLDER[wo.type] || 'structure...'}"
               value="${wo.detail || ''}" oninput="cpSetDetail('${key}',this.value)">
             ${presets.length ? `<div class="cp-presets">${presets.map(p =>
               `<button class="cp-preset" onclick="cpApplyPreset('${key}','${p}');event.stopPropagation()">${p}</button>`
             ).join('')}</div>` : ''}` : ''}
-          </div>` : ''}` : ''}
+          </div>` : ''}
           <button class="cp-chip-remove" onclick="cpRemove('${key}');event.stopPropagation()" title="Remove">&#10005;</button>
         </div>`;
       } else {
@@ -2351,13 +2347,12 @@ function cpTrashDrop(e) {
   cpDrag = null;
 }
 
-function cpRemove(key)           { delete cpPlan[key]; cpExpanded.delete(key); renderCustomCalendar(); }
+function cpRemove(key)           { delete cpPlan[key]; renderCustomCalendar(); }
 function cpSetDist(key, val)     { if (cpPlan[key]) cpPlan[key].dist = parseFloat(val) || null; }
 function cpSetPace(key, val)     { if (cpPlan[key]) cpPlan[key].pace = val.trim(); }
 function cpSetDetail(key, val)   { if (cpPlan[key]) { cpPlan[key].detail = val; const el = document.querySelector(`.cp-chip-detail-input[oninput*="${key}"]`); if (el) el.value = val; } }
 function cpApplyPreset(key, val) { if (cpPlan[key]) { cpPlan[key].detail = val; renderCustomCalendar(); } }
-function cpToggleExpand(key)     { cpExpanded.has(key) ? cpExpanded.delete(key) : cpExpanded.add(key); renderCustomCalendar(); }
-function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; cpExpanded.clear(); renderCustomCalendar(); } }
+function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; renderCustomCalendar(); } }
 
 function parsePaceStr(str) {
   if (!str) return null;
@@ -2420,11 +2415,10 @@ document.addEventListener('touchend', e => {
     } else if (cpDrag.from === 'cell' && cpDrag.key !== key) {
       cpPlan[key] = { ...cpPlan[cpDrag.key] };
       delete cpPlan[cpDrag.key];
-      cpExpanded.delete(cpDrag.key);
     }
     renderCustomCalendar();
   } else if (trash && cpDrag.from === 'cell') {
-    delete cpPlan[cpDrag.key]; cpExpanded.delete(cpDrag.key);
+    delete cpPlan[cpDrag.key];
     renderCustomCalendar();
   }
   cpDrag = null;
