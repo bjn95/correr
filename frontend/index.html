@@ -489,7 +489,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <nav>
   <div class="nav-logo" onclick="goHome()" style="cursor:pointer">Correr<span>.</span></div>
   <div class="nav-links">
-    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Timetable</a>
+    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Custom Plan</a>
   </div>
   <div class="nav-status">
     <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
@@ -497,7 +497,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     </div>
     <a href="#" id="nav-premium" onclick="showPremium();return false" class="nav-premium-btn">Go Premium</a>
     <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlan();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">My Plan</a>
-    <a href="#" id="nav-get-started" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">Get Started</a>
+    <a href="#" id="nav-get-started" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">AI Smart Plan</a>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -507,10 +507,10 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <a href="#" onclick="showSection('features');closeMobileNav();return false">Features</a>
   <a href="#" onclick="showSection('plans');closeMobileNav();return false">Plans</a>
   <a href="#" onclick="showSection('devices');closeMobileNav();return false">Devices</a>
-  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Timetable</a>
+  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Custom Plan</a>
   <a href="#" onclick="showPremium();closeMobileNav();return false" class="mobile-nav-premium">Go Premium</a>
   <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlan();closeMobileNav();return false">My Plan</a>
-  <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">Get Started</a>
+  <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">AI Smart Plan</a>
 </div>
 
 <section id="hero">
@@ -519,7 +519,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <h1>Run<br><em>Smarter.</em><br>Go Further.</h1>
     <p class="hero-sub">Correr builds your personalised running plan in minutes — tailored to your goals, fitness level, and schedule. Syncs with Strava.</p>
     <div class="hero-cta">
-      <button class="btn-primary" onclick="startSurvey()">Build My Plan</button>
+      <button class="btn-primary" onclick="startSurvey()">Build AI Smart Plan</button>
       <button class="btn-secondary" onclick="showProgress()">Plan Insights</button>
     </div>
   </div>
@@ -986,7 +986,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <section id="custom-plan-section">
   <a href="#" class="premium-back" onclick="closeCustomPlan();return false">&larr; Back</a>
   <span class="section-kicker">Plan Builder</span>
-  <div class="cp-page-title">Timetable Builder</div>
+  <div class="cp-page-title">Custom Plan</div>
   <div class="cp-page-sub">Build your own training schedule from scratch. Drag workout types onto the calendar, click a distance to edit it, or drag between days to rearrange.</div>
 
   <div class="cp-top-bar">
