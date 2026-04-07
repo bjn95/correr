@@ -464,6 +464,13 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 .cp-chip-remove{position:absolute;top:.15rem;right:.15rem;width:13px;height:13px;background:rgba(0,0,0,.18);border:none;border-radius:50%;cursor:pointer;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:inherit;opacity:0;transition:opacity .15s;padding:0;line-height:1}
 .cp-chip:hover .cp-chip-remove{opacity:1}
 .cp-chip-extra{margin-top:.3rem;border-top:1px solid rgba(0,0,0,.1);padding-top:.3rem;display:flex;flex-direction:column;gap:.25rem}
+.cp-struct-row{display:flex;align-items:center;gap:.2rem;flex-wrap:wrap}
+.cp-struct-lbl{font-size:.54rem;opacity:.65;white-space:nowrap;flex-shrink:0}
+.cp-struct-sel{font-size:.65rem;font-family:'DM Sans',sans-serif;border:1px solid rgba(0,0,0,.22);border-radius:2px;background:rgba(0,0,0,.08);color:inherit;padding:.1rem .2rem;cursor:pointer;flex-shrink:0}
+.cp-struct-sel:focus{outline:none;background:rgba(0,0,0,.15)}
+.cp-struct-toggle{display:flex;border:1px solid rgba(0,0,0,.22);border-radius:2px;overflow:hidden;flex-shrink:0}
+.cp-struct-tbtn{font-size:.58rem;padding:.1rem .32rem;border:none;background:rgba(0,0,0,.06);color:inherit;cursor:pointer;line-height:1.5;transition:background .12s,font-weight .12s}
+.cp-struct-tbtn.active{background:rgba(0,0,0,.22);font-weight:700}
 .cp-chip-pace-row{display:flex;align-items:center;gap:.2rem}
 .cp-pace-lbl{font-size:.52rem;opacity:.65;white-space:nowrap}
 .cp-pace-input{width:38px;font-size:.75rem;font-family:'DM Mono',monospace;border:none;background:rgba(0,0,0,.08);border-radius:2px;padding:.1rem .25rem;color:inherit;min-width:0}
@@ -2170,21 +2177,45 @@ const CP_TIPS  = {
   rest:        'Rest Day — Complete rest or very light activity. Essential for adaptation and injury prevention.',
 };
 
+// Structured builder for intervals / hills / fartlek
+const CP_STRUCT_TYPES = new Set(['intervals','hills','fartlek']);
+const CP_REPS_OPTS = {
+  intervals: [3,4,5,6,8,10,12,16,20],
+  hills:     [4,6,8,10,12,15,20],
+  fartlek:   [3,4,5,6,8,10,12],
+};
+const CP_DIST_OPTS = {
+  intervals: ['100m','150m','200m','300m','400m','600m','800m','1km','1.2km','1.6km'],
+  hills:     ['50m','80m','100m','150m','200m','400m'],
+  fartlek:   ['200m','400m','500m','800m','1km','1.5km','2km'],
+};
+const CP_TIME_OPTS = {
+  intervals: ['20s','30s','45s','1 min','90s','2 min','3 min','4 min','5 min'],
+  hills:     ['15s','20s','30s','45s','1 min','90s','2 min'],
+  fartlek:   ['30s','1 min','2 min','3 min','4 min','5 min','6 min','8 min'],
+};
+const CP_RECOVERY_OPTS = {
+  intervals: ['60s jog','90s jog','2 min jog','3 min jog','equal jog','full recovery'],
+  hills:     ['walk down','jog down','60s walk','90s jog','2 min walk'],
+  fartlek:   ['equal easy','1 min easy','2 min easy','3 min easy','float recovery'],
+};
+const CP_STRUCT_DEFAULT = {
+  intervals: { reps:6, repVal:'400m', structMode:'dist', recovery:'90s jog' },
+  hills:     { reps:8, repVal:'200m', structMode:'dist', recovery:'walk down' },
+  fartlek:   { reps:6, repVal:'3 min', structMode:'time', recovery:'2 min easy' },
+};
+
+// Free-text detail for non-structured types
 const CP_PRESETS = {
-  intervals:   ['6×800m','8×400m','4×1km','10×200m','5×1km','12×300m'],
-  hills:       ['8×200m','10×1 min','6×400m','12×30s','8×1 min'],
-  fartlek:     ['6×3 min','8×2 min','10×1 min','5×4 min','30 min mixed'],
   tempo:       ['20 min','30 min','5km','2×15 min','3×10 min'],
-  progression: ['last 3km race pace','last 5km race pace','negative split','final km sprint'],
+  progression: ['last 3km race pace','last 5km race pace','negative split'],
   strides:     ['6×20s','8×20s','4×30s','10×20s'],
 };
 const CP_DETAIL_PLACEHOLDER = {
-  intervals:'e.g. 8×400m @ 5K pace', hills:'e.g. 8×1 min hill reps',
-  fartlek:'e.g. 6×3 min hard/2 min easy', tempo:'e.g. 20 min continuous',
-  progression:'e.g. last 3km at race pace', strides:'e.g. 6×20s strides',
-  easy:'e.g. recovery focus', long:'e.g. easy throughout',
+  tempo:'e.g. 20 min continuous', progression:'e.g. last 3km at race pace',
+  strides:'e.g. 6×20s strides', easy:'e.g. recovery focus', long:'e.g. easy throughout',
 };
-const CP_HAS_DETAIL = new Set(['intervals','hills','fartlek','tempo','progression','strides','easy','long']);
+const CP_HAS_DETAIL = new Set(['tempo','progression','strides','easy','long']);
 
 let cpPlan = {};          // "week-day" → { type, dist, pace, detail }
 let cpWeeksCount = 8;
@@ -2269,8 +2300,17 @@ function renderCustomCalendar() {
                     ondragover="cpCellOver(event)" ondragleave="cpCellLeave(event)"
                     ondrop="cpCellDrop(event,${w},'${day}')">`;
       if (wo) {
-        const presets = CP_PRESETS[wo.type] || [];
+        const isStruct = CP_STRUCT_TYPES.has(wo.type);
+        const presets  = CP_PRESETS[wo.type] || [];
         const showDetail = CP_HAS_DETAIL.has(wo.type);
+        // Structured types: read saved values or fall back to defaults
+        const sd    = CP_STRUCT_DEFAULT[wo.type] || {};
+        const reps  = wo.reps  ?? sd.reps  ?? 6;
+        const mode  = wo.structMode ?? sd.structMode ?? 'dist';
+        const repVal= wo.repVal ?? sd.repVal ?? '';
+        const rec   = wo.recovery ?? sd.recovery ?? '';
+        const valOpts = (mode === 'dist' ? CP_DIST_OPTS : CP_TIME_OPTS)[wo.type] || [];
+        const recOpts = CP_RECOVERY_OPTS[wo.type] || [];
         html += `<div class="cp-chip workout-type type-${wo.type}" draggable="true"
                       ondragstart="cpChipDragStart(event,'${key}')" ondragend="cpDragEnd(event)"
                       ontouchstart="cpChipTouchStart(event,'${key}')">
@@ -2289,10 +2329,32 @@ function renderCustomCalendar() {
                 value="${wo.pace || ''}" oninput="cpSetPace('${key}',this.value)">
               <span class="cp-pace-lbl">/km</span>
             </div>
-            ${showDetail ? `<input class="cp-chip-detail-input" type="text"
-              placeholder="${CP_DETAIL_PLACEHOLDER[wo.type] || 'structure...'}"
+            ${isStruct ? `
+            <div class="cp-struct-row">
+              <span class="cp-struct-lbl">reps</span>
+              <select class="cp-struct-sel" onchange="cpSetStruct('${key}','reps',+this.value)" onclick="event.stopPropagation()">
+                ${(CP_REPS_OPTS[wo.type]||[]).map(n=>`<option value="${n}"${n==reps?' selected':''}>${n}</option>`).join('')}
+              </select>
+              <span class="cp-struct-lbl">×</span>
+              <select class="cp-struct-sel" onchange="cpSetStruct('${key}','repVal',this.value)" onclick="event.stopPropagation()">
+                ${valOpts.map(v=>`<option value="${v}"${v===repVal?' selected':''}>${v}</option>`).join('')}
+              </select>
+              <div class="cp-struct-toggle">
+                <button class="cp-struct-tbtn${mode==='dist'?' active':''}" onclick="cpStructMode('${key}','dist');event.stopPropagation()">dist</button>
+                <button class="cp-struct-tbtn${mode==='time'?' active':''}" onclick="cpStructMode('${key}','time');event.stopPropagation()">time</button>
+              </div>
+            </div>
+            <div class="cp-struct-row">
+              <span class="cp-struct-lbl">rec</span>
+              <select class="cp-struct-sel" style="max-width:90px" onchange="cpSetStruct('${key}','recovery',this.value)" onclick="event.stopPropagation()">
+                <option value="">—</option>
+                ${recOpts.map(v=>`<option value="${v}"${v===rec?' selected':''}>${v}</option>`).join('')}
+              </select>
+            </div>` :
+            showDetail ? `<input class="cp-chip-detail-input" type="text"
+              placeholder="${CP_DETAIL_PLACEHOLDER[wo.type] || 'notes...'}"
               value="${wo.detail || ''}" oninput="cpSetDetail('${key}',this.value)">
-            ${presets.length ? `<div class="cp-presets">${presets.map(p =>
+            ${presets.length ? `<div class="cp-presets">${presets.map(p=>
               `<button class="cp-preset" onclick="cpApplyPreset('${key}','${p}');event.stopPropagation()">${p}</button>`
             ).join('')}</div>` : ''}` : ''}
           </div>` : ''}
@@ -2331,7 +2393,8 @@ function cpCellDrop(e, week, day) {
   if (!cpDrag) return;
   const key = `${week}-${day}`;
   if (cpDrag.from === 'palette') {
-    cpPlan[key] = { type: cpDrag.type, dist: CP_DEFAULT_DIST[cpDrag.type] };
+    const sd = CP_STRUCT_DEFAULT[cpDrag.type] || {};
+    cpPlan[key] = { type: cpDrag.type, dist: CP_DEFAULT_DIST[cpDrag.type], ...sd };
   } else if (cpDrag.from === 'cell' && cpDrag.key !== key) {
     cpPlan[key] = { ...cpPlan[cpDrag.key] };
     delete cpPlan[cpDrag.key];
@@ -2352,6 +2415,24 @@ function cpSetDist(key, val)     { if (cpPlan[key]) cpPlan[key].dist = parseFloa
 function cpSetPace(key, val)     { if (cpPlan[key]) cpPlan[key].pace = val.trim(); }
 function cpSetDetail(key, val)   { if (cpPlan[key]) { cpPlan[key].detail = val; const el = document.querySelector(`.cp-chip-detail-input[oninput*="${key}"]`); if (el) el.value = val; } }
 function cpApplyPreset(key, val) { if (cpPlan[key]) { cpPlan[key].detail = val; renderCustomCalendar(); } }
+function cpSetStruct(key, field, val) { if (cpPlan[key]) cpPlan[key][field] = val; }
+function cpStructMode(key, mode) {
+  const wo = cpPlan[key];
+  if (!wo) return;
+  wo.structMode = mode;
+  // Pick the middle option of the new mode as default rep value
+  const opts = (mode === 'dist' ? CP_DIST_OPTS : CP_TIME_OPTS)[wo.type] || [];
+  wo.repVal = opts[Math.floor(opts.length / 2)] || opts[0] || '';
+  renderCustomCalendar();
+}
+function cpGetStructDetail(wo) {
+  const sd   = CP_STRUCT_DEFAULT[wo.type] || {};
+  const reps = wo.reps  ?? sd.reps  ?? 6;
+  const mode = wo.structMode ?? sd.structMode ?? 'dist';
+  const val  = wo.repVal ?? sd.repVal ?? '';
+  const rec  = (wo.recovery ?? sd.recovery ?? '');
+  return `${reps}×${val}${rec ? `, ${rec}` : ''}`;
+}
 function clearCustomPlan()       { if (confirm('Clear all workouts?')) { cpPlan = {}; cpCopiedWeek = null; renderCustomCalendar(); } }
 
 function parsePaceStr(str) {
@@ -2411,7 +2492,8 @@ document.addEventListener('touchend', e => {
     const parts = cell.id.replace('cpcell-', '').split('-');
     const key   = `${parseInt(parts[0])}-${parts[1]}`;
     if (cpDrag.from === 'palette') {
-      cpPlan[key] = { type: cpDrag.type, dist: CP_DEFAULT_DIST[cpDrag.type] };
+      const sd = CP_STRUCT_DEFAULT[cpDrag.type] || {};
+      cpPlan[key] = { type: cpDrag.type, dist: CP_DEFAULT_DIST[cpDrag.type], ...sd };
     } else if (cpDrag.from === 'cell' && cpDrag.key !== key) {
       cpPlan[key] = { ...cpPlan[cpDrag.key] };
       delete cpPlan[cpDrag.key];
@@ -2459,7 +2541,8 @@ async function saveCustomPlan() {
     const scheduledDate = (startMs && dayOff >= 0)
       ? new Date(startMs + (week - 1) * 7 * 86400000 + dayOff * 86400000).toISOString().slice(0, 10)
       : null;
-    return { week, day, type: wo.type, name: CP_NAMES[wo.type] || wo.type, distance: wo.dist || null, scheduledDate, pace: parsePaceStr(wo.pace), detail: wo.detail || null };
+    const detail = CP_STRUCT_TYPES.has(wo.type) ? cpGetStructDetail(wo) : (wo.detail || null);
+    return { week, day, type: wo.type, name: CP_NAMES[wo.type] || wo.type, distance: wo.dist || null, scheduledDate, pace: parsePaceStr(wo.pace), detail };
   });
 
   if (!workouts.length) { showToast('Add at least one workout first', 'error'); return; }
