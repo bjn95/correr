@@ -457,27 +457,24 @@ app.patch('/api/plan/start-date', (req, res) => {
   ).get(userId)?.id;
   if (!resolvedPlanId) return res.status(404).json({ error: 'No plan found' });
 
-  const first = db.prepare(
-    'SELECT scheduled_date FROM plan_workouts WHERE plan_id = ? AND scheduled_date IS NOT NULL ORDER BY scheduled_date ASC LIMIT 1'
-  ).get(resolvedPlanId);
-  if (!first) return res.status(404).json({ error: 'No workouts found' });
-
-  const offsetDays = Math.round(
-    (new Date(startDate + 'T00:00:00Z') - new Date(first.scheduled_date + 'T00:00:00Z'))
-    / 86400000
-  );
-  if (offsetDays === 0) return res.json({ startDate });
-
   const workouts = db.prepare(
-    'SELECT id, scheduled_date FROM plan_workouts WHERE plan_id = ? AND scheduled_date IS NOT NULL'
+    'SELECT id, week_number, day_of_week, workout_type FROM plan_workouts WHERE plan_id = ? ORDER BY week_number, day_of_week'
   ).all(resolvedPlanId);
+  if (!workouts.length) return res.status(404).json({ error: 'No workouts found' });
 
-  const update = db.prepare('UPDATE plan_workouts SET scheduled_date = ? WHERE id = ?');
+  // Rebuild every scheduled_date from week_number + day_of_week + startDate.
+  // This works whether dates were previously set or all null (e.g. custom plans
+  // saved without a start date).  Race-day entries keep their fixed date.
+  const DAY_OFFSETS = { Mon:0, Tue:1, Wed:2, Thu:3, Fri:4, Sat:5, Sun:6 };
+  const startMs = new Date(startDate + 'T00:00:00Z').getTime();
+  const update  = db.prepare('UPDATE plan_workouts SET scheduled_date = ? WHERE id = ?');
+
   db.transaction(() => {
     for (const w of workouts) {
-      const d = new Date(w.scheduled_date + 'T00:00:00Z');
-      d.setUTCDate(d.getUTCDate() + offsetDays);
-      update.run(d.toISOString().slice(0, 10), w.id);
+      if (w.workout_type === 'race') continue;  // race date is user-defined, leave it
+      const dayOff = DAY_OFFSETS[w.day_of_week] ?? 0;
+      const offset = (w.week_number - 1) * 7 + dayOff;
+      update.run(new Date(startMs + offset * 86400000).toISOString().slice(0, 10), w.id);
     }
   })();
 

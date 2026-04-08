@@ -3200,8 +3200,7 @@ async function deletePlan() {
 async function applyStartDate() {
   const input = document.getElementById('plan-start-input');
   const newDate = input.value;
-  if (!newDate) return;
-  closeStartDatePicker();
+  if (!newDate) { showToast('Please select a date', 'error'); return; }
   try {
     const res = await fetch(`${API}/api/plan/start-date`, {
       method: 'PATCH',
@@ -3209,11 +3208,12 @@ async function applyStartDate() {
       credentials: 'include',
       body: JSON.stringify({ userId, startDate: newDate, planId: activePlanId }),
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+    closeStartDatePicker();
     showToast('Start date updated', 'success');
     await loadPlan();
   } catch (e) {
-    showToast('Could not update start date', 'error');
+    showToast(`Could not update start date: ${e.message}`, 'error');
   }
 }
 
