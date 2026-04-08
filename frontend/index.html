@@ -1304,9 +1304,8 @@ async function disconnectStrava() {
     document.getElementById('bar-chart').innerHTML = '';
     showToast('Strava disconnected', 'success');
     // Return to plan/home after disconnect
-    hide('profile-section');
     if (planWorkouts.length) showMyPlan();
-    else { show('hero'); show('how-it-works'); scrollTop(); }
+    else goHome();
   } catch (e) {
     showToast('Failed to disconnect', 'error');
   }
@@ -1598,7 +1597,7 @@ function selectTimeline(btn, value) {
 
 // ??? SUBMIT SURVEY ? POST to backend ?????????????????????????????????????????
 async function submitSurvey() {
-  hide('survey-section');
+  hideAll();
   show('generating');
   scrollTop();
 
@@ -1639,7 +1638,7 @@ async function submitSurvey() {
     if (data.planId) { activePlanId = data.planId; localStorage.setItem('correr_plan_id', String(activePlanId)); }
 
     setTimeout(() => {
-      hide('generating');
+      hideAll();
       loadPlan(activePlanId);
     }, 800);
 
@@ -1647,7 +1646,7 @@ async function submitSurvey() {
     // Backend not available -- show demo plan
     console.warn('Backend unavailable, showing demo plan:', err.message);
     setTimeout(() => {
-      hide('generating');
+      hideAll();
       showDemoPlan();
     }, 800);
   }
@@ -1823,7 +1822,7 @@ async function editPlan() {
       btn.classList.toggle('selected', btn.dataset.dist === answers.paceDistance);
     });
 
-    hide('plan-section');
+    hideAll();
     show('survey-section');
     scrollTop();
   } catch (e) {
@@ -2249,9 +2248,8 @@ function showPremium() {
 }
 
 function closePremium() {
-  hide('premium-section');
   if (planWorkouts.length) showMyPlan();
-  else { show('hero'); show('how-it-works'); scrollTop(); }
+  else goHome();
 }
 
 // ── Custom Plan Builder ───────────────────────────────────────────────────────
@@ -2338,9 +2336,8 @@ function showCustomPlan() {
 }
 
 function closeCustomPlan() {
-  hide('custom-plan-section');
   if (planWorkouts.length) showMyPlan();
-  else { show('hero'); show('how-it-works'); scrollTop(); }
+  else goHome();
 }
 
 function setCpWeeks(n) {
@@ -3193,10 +3190,7 @@ async function deletePlan() {
     localStorage.removeItem('correr_user_id');
     userId = null;
     setNavHasPlan(false);
-    hide('plan-section');
-    show('hero');
-    show('how-it-works');
-    scrollTop();
+    goHome();
     showToast('Plan deleted', 'success');
   } catch (e) {
     showToast('Could not delete plan', 'error');
