@@ -1888,6 +1888,7 @@ function renderPlan(summary, workouts, byWeek, raceDate) {
   renderWorkoutList(workouts);
 
   setNavHasPlan(true);
+  hideAll();
   show('plan-section');
   scrollTop();
 }
@@ -2144,6 +2145,44 @@ function toggleWeekExpand(weekNum) {
 }
 
 // ── Export Plan PDF ───────────────────────────────────────────────────────────
+
+// Format pace from min/km float → "M:SS/km"
+function pdfFmtPace(paceMinKm) {
+  if (!paceMinKm) return null;
+  const total = Math.round(paceMinKm * 60);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}/km`;
+}
+
+// Pull the key structural detail out of a coaching description:
+// reps × distance, tempo block length, hill reps, etc.
+function extractWorkoutDetail(type, desc) {
+  if (!desc) return null;
+  let m;
+  if (type === 'intervals' || type === 'cruise') {
+    m = desc.match(/(\d+\s*[×x]\s*(?:\d+m|\d+\.?\d*\s*km))/i);
+    return m ? m[1].replace(/\s*[×x]\s*/i, ' × ') : null;
+  }
+  if (type === 'tempo') {
+    m = desc.match(/[Tt]empo block:\s*([\d.]+\s*km)/);
+    return m ? `Block: ${m[1]}` : null;
+  }
+  if (type === 'fartlek') {
+    m = desc.match(/(\d+)\s*[×x]\s*1\s*min/i);
+    return m ? `${m[1]} × 1 min efforts` : null;
+  }
+  if (type === 'hills') {
+    m = desc.match(/(\d+)\s*reps/i);
+    return m ? `${m[1]} hill reps` : null;
+  }
+  if (type === 'progression') {
+    m = desc.match(/final\s*([\d.]+\s*km)/i);
+    return m ? `Final ${m[1]} @ pace` : null;
+  }
+  return null;
+}
+
 function exportPlanPDF() {
   if (!planWorkouts?.length) { showToast('No plan to export', 'error'); return; }
 
@@ -2197,7 +2236,7 @@ function exportPlanPDF() {
   doc.setLineWidth(0.8);
   doc.line(14, 28, 283, 28);
 
-  // Build table
+  // Body: day cells left blank — content drawn manually in didDrawCell
   const head = [['Week', 'Phase', ...DAYS]];
   const body = weekNums.map(wk => {
     const phase = (() => {
@@ -2209,14 +2248,9 @@ function exportPlanPDF() {
     })();
     const isRaceWeek = planRaceDate && wk === totalPlanWeeks;
     return [
-      `Week ${wk}${isRaceWeek ? '\n🏁 Race' : ''}`,
+      `Week ${wk}${isRaceWeek ? '\n🏁' : ''}`,
       phase,
-      ...DAYS.map(day => {
-        const w = grouped[wk]?.[day];
-        if (!w || w.workout_type === 'rest') return '—';
-        const km = w.target_distance_km ? `${Math.round(w.target_distance_km)}km` : '';
-        return `${w.workout_type.toUpperCase()}\n${km}`;
-      }),
+      ...DAYS.map(() => ''),  // content drawn via didDrawCell
     ];
   });
 
@@ -2226,12 +2260,13 @@ function exportPlanPDF() {
     body,
     styles: {
       font: 'helvetica',
-      fontSize: 7.5,
-      cellPadding: { top: 2.5, right: 2, bottom: 2.5, left: 2 },
-      valign: 'middle',
+      fontSize: 7,
+      cellPadding: { top: 2, right: 2, bottom: 2, left: 2.5 },
+      valign: 'top',
       overflow: 'linebreak',
       lineColor: [210, 205, 198],
       lineWidth: 0.2,
+      minCellHeight: 20,
     },
     headStyles: {
       fillColor: [13, 13, 13],
@@ -2239,28 +2274,80 @@ function exportPlanPDF() {
       fontStyle: 'bold',
       fontSize: 7.5,
       halign: 'center',
+      minCellHeight: 7,
     },
+    bodyStyles: { minCellHeight: 20 },
     columnStyles: {
-      0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 16, halign: 'center', textColor: [120, 120, 110] },
-      2: { cellWidth: 34 }, 3: { cellWidth: 34 }, 4: { cellWidth: 34 },
-      5: { cellWidth: 34 }, 6: { cellWidth: 34 }, 7: { cellWidth: 34 }, 8: { cellWidth: 34 },
+      0: { cellWidth: 16, halign: 'center', fontStyle: 'bold', valign: 'middle' },
+      1: { cellWidth: 14, halign: 'center', textColor: [120, 120, 110], valign: 'middle' },
+      2: { cellWidth: 35 }, 3: { cellWidth: 35 }, 4: { cellWidth: 35 },
+      5: { cellWidth: 35 }, 6: { cellWidth: 35 }, 7: { cellWidth: 35 }, 8: { cellWidth: 35 },
     },
     didParseCell(data) {
-      if (data.section === 'body' && data.column.index >= 2) {
-        const wk = weekNums[data.row.index];
-        const day = DAYS[data.column.index - 2];
-        const w = grouped[wk]?.[day];
-        const type = w?.workout_type || 'rest';
-        const rgb = TYPE_COLORS[type] || TYPE_COLORS.rest;
-        data.cell.styles.fillColor = rgb;
-        if (type !== 'rest' && w) {
-          data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.textColor = [13, 13, 13];
-        } else {
-          data.cell.styles.textColor = [180, 175, 168];
-        }
-        data.cell.styles.halign = 'center';
+      if (data.section !== 'body' || data.column.index < 2) return;
+      const wk  = weekNums[data.row.index];
+      const day = DAYS[data.column.index - 2];
+      const w   = grouped[wk]?.[day];
+      const type = w?.workout_type || 'rest';
+      data.cell.styles.fillColor = TYPE_COLORS[type] || TYPE_COLORS.rest;
+    },
+    didDrawCell(data) {
+      if (data.section !== 'body' || data.column.index < 2) return;
+      const wk  = weekNums[data.row.index];
+      const day = DAYS[data.column.index - 2];
+      const w   = grouped[wk]?.[day];
+
+      if (!w || w.workout_type === 'rest') {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(190, 185, 178);
+        doc.text('—', data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2,
+          { align: 'center', baseline: 'middle' });
+        return;
+      }
+
+      const cx    = data.cell.x + 2.5;
+      const maxW  = data.cell.width - 5;
+      let   cy    = data.cell.y + 4.5;
+      const lineH = 3.8;
+
+      // Line 1 — session type (bold, 7pt)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(13, 13, 13);
+      doc.text(w.workout_type.toUpperCase(), cx, cy, { maxWidth: maxW });
+      cy += lineH;
+
+      // Line 2 — distance · pace (normal, 6.5pt)
+      const km   = w.target_distance_km ? `${Math.round(w.target_distance_km)}km` : '';
+      const pace = pdfFmtPace(w.target_pace_min_km);
+      const line2 = [km, pace].filter(Boolean).join(' · ');
+      if (line2) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(40, 40, 40);
+        doc.text(line2, cx, cy, { maxWidth: maxW });
+        cy += lineH;
+      }
+
+      // Line 3 — structural detail: reps, block length, hill reps, etc. (6pt, muted)
+      const detail = extractWorkoutDetail(w.workout_type, w.description);
+      if (detail) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(100, 95, 88);
+        doc.text(detail, cx, cy, { maxWidth: maxW });
+        cy += lineH;
+      }
+
+      // Line 4 — scheduled date (5.5pt, very muted) if available
+      if (w.scheduled_date) {
+        const dateStr = new Date(w.scheduled_date + 'T00:00:00Z')
+          .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5.5);
+        doc.setTextColor(150, 145, 138);
+        doc.text(dateStr, cx, cy, { maxWidth: maxW });
       }
     },
     alternateRowStyles: { fillColor: false },
