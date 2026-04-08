@@ -1880,10 +1880,7 @@ function renderPlan(summary, workouts, byWeek, raceDate) {
   renderWeekCarousel();
   renderWorkoutList(workouts);
 
-  document.getElementById('nav-get-started').style.display = 'none';
-  document.getElementById('nav-my-plan').style.display = '';
-  document.getElementById('mobile-nav-my-plan').style.display = '';
-  document.getElementById('mobile-nav-get-started').style.display = 'none';
+  setNavHasPlan(true);
   show('plan-section');
   scrollTop();
 }
@@ -3195,6 +3192,7 @@ async function deletePlan() {
     planByWeek = {};
     localStorage.removeItem('correr_user_id');
     userId = null;
+    setNavHasPlan(false);
     hide('plan-section');
     show('hero');
     show('how-it-works');
@@ -3276,6 +3274,27 @@ function show(id) { const el=document.getElementById(id); if(el) el.style.displa
 function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function hideAll() { ALL_SECTIONS.forEach(id => hide(id)); }
+
+// Update nav + hero CTA based on whether the user has a plan
+function setNavHasPlan(hasPlan) {
+  const navBtn        = document.getElementById('nav-get-started');
+  const mobileNavBtn  = document.getElementById('mobile-nav-get-started');
+  const heroCta       = document.querySelector('.hero-cta .btn-primary');
+
+  // Hide the redundant separate "My Plans" button — the main nav button handles it
+  document.getElementById('nav-my-plan').style.display = 'none';
+  document.getElementById('mobile-nav-my-plan').style.display = 'none';
+
+  if (hasPlan) {
+    if (navBtn)     { navBtn.textContent = 'My Plans';    navBtn.setAttribute('onclick',       'showMyPlans();return false'); }
+    if (mobileNavBtn) { mobileNavBtn.textContent = 'My Plans'; mobileNavBtn.setAttribute('onclick', 'showMyPlans();closeMobileNav();return false'); }
+    if (heroCta)    { heroCta.textContent = 'My Plans';   heroCta.setAttribute('onclick',      'showMyPlans()'); }
+  } else {
+    if (navBtn)     { navBtn.textContent = 'AI Smart Plan'; navBtn.setAttribute('onclick',     'startSurvey();return false'); }
+    if (mobileNavBtn) { mobileNavBtn.textContent = 'AI Smart Plan'; mobileNavBtn.setAttribute('onclick', 'startSurvey();closeMobileNav();return false'); }
+    if (heroCta)    { heroCta.textContent = 'Build AI Smart Plan'; heroCta.setAttribute('onclick', 'startSurvey()'); }
+  }
+}
 
 const ALL_SECTIONS = ['hero','how-it-works','features-section','devices-section','survey-section',
   'generating','plan-section','progress-section','profile-section','my-plans-section',
