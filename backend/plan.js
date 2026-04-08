@@ -252,17 +252,27 @@ function buildWeekSessions({ weekNum, totalWeeks, days, level, longKm, targetPac
   const activeDays = (() => {
     if (!preferredDays || preferredDays.length === 0)
       return DEFAULT_DAYS[clamp(days, 2, 6)] || DEFAULT_DAYS[3];
+
     const sorted = preferredDays.slice().sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b));
-    if (days >= sorted.length) return sorted;
-    const anchor  = (longRunDay && sorted.includes(longRunDay)) ? longRunDay : sorted[sorted.length - 1];
-    const others  = sorted.filter(d => d !== anchor);
-    const need    = Math.max(0, days - 1);
+    if (days >= sorted.length) return sorted;  // enough available — use all
+
+    // Long run day is always locked in
+    const anchor = (longRunDay && sorted.includes(longRunDay)) ? longRunDay : sorted[sorted.length - 1];
+    const pool   = sorted.filter(d => d !== anchor);  // remaining available days
+    const need   = Math.max(0, days - 1);             // non-long slots required
+
+    if (pool.length <= need) return sorted;  // pool exhausted — use all
+
+    // Rotate the starting position through the pool each week so the plan
+    // uses different days in different weeks (all within user's available days).
+    // Step by (need) each week to ensure minimal day-overlap between consecutive weeks.
+    const step     = Math.max(1, need);
+    const startIdx = ((weekNum - 1) * step) % pool.length;
     const selected = new Set([anchor]);
-    if (need > 0 && others.length > 0) {
-      for (let i = 0; i < need; i++) {
-        selected.add(others[Math.min(Math.round(i * (others.length / need)), others.length - 1)]);
-      }
+    for (let i = 0; i < need; i++) {
+      selected.add(pool[(startIdx + i) % pool.length]);
     }
+
     return sorted.filter(d => selected.has(d));
   })();
 
