@@ -120,6 +120,10 @@ h1 em{color:var(--accent);font-style:normal}
 .opt-desc{font-size:.8rem;color:var(--muted);display:block;font-weight:400}
 .option-btn.selected .opt-desc{color:inherit;opacity:.7}
 .pace-preview{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--accent);min-height:1.4em}
+.ambition-warning{display:none;margin-top:1rem;padding:.8rem 1rem .8rem 1.1rem;border-radius:3px;font-size:.83rem;line-height:1.55}
+.ambition-warning strong{display:block;margin-bottom:.2rem;font-size:.87rem}
+.ambition-caution{background:#fffbeb;border-left:3px solid #f59e0b;color:#7c5c00}
+.ambition-danger{background:#fff1f0;border-left:3px solid #e53935;color:#8b1a1a}
 .time-inputs{display:flex;align-items:flex-end;gap:.5rem;margin-bottom:.75rem}
 .time-unit{display:flex;flex-direction:column;align-items:center;gap:.3rem}
 .time-unit input{width:66px;padding:.65rem .4rem;text-align:center;font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:500;border:2px solid var(--border);border-radius:3px;background:var(--paper);color:var(--ink);transition:border-color .15s;-moz-appearance:textfield;-webkit-appearance:none}
@@ -787,6 +791,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
         <div id="target-preview" class="pace-preview"></div>
       </div>
     </div>
+    <div id="ambition-warning" class="ambition-warning"></div>
     <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.7rem">Or choose a plan length</div>
     <div class="options">
       <button class="option-btn" onclick="selectTimeline(this,'4w')" data-value="4w"><span class="opt-icon">&#128197;</span><span><span class="opt-label">4 Weeks</span><span class="opt-desc">Racing soon — sharpen what you have</span></span></button>
@@ -803,6 +808,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
     <div class="q-text">Name your plan.</div>
     <div class="q-hint">We've suggested a name based on your goal — or personalise it, e.g. "Paris Marathon 2026".</div>
     <input type="text" id="plan-name-input" class="profile-input" style="font-size:1rem;padding:.8rem 1rem;margin-bottom:.5rem" placeholder="My Training Plan" oninput="answers.planName=this.value">
+    <div id="ambition-warning-q9" class="ambition-warning" style="margin-bottom:.75rem"></div>
     <div class="q-nav"><button class="btn-back" onclick="prevQuestion(9)">&larr; Back</button><button class="btn-next" onclick="submitSurvey()">Generate My Plan &#128640;</button></div>
   </div>
 </section>
@@ -1384,7 +1390,7 @@ function nextQuestion(n) {
   if (next === 4) populateLongRunDayGrid();
   document.getElementById('q' + next).classList.add('active');
   updateProgress(next);
-  if (next === 9) prefillPlanName();
+  if (next === 9) { prefillPlanName(); checkGoalAmbition(); }
   window.scrollTo({ top: document.getElementById('survey-section').offsetTop - 80, behavior: 'smooth' });
 }
 
@@ -1544,6 +1550,7 @@ function onTargetTimeInput() {
   if (total <= 0) {
     answers.targetTimeSecs = null;
     preview.textContent = '';
+    checkGoalAmbition();
     return;
   }
   answers.targetTimeSecs = total;
@@ -1553,6 +1560,130 @@ function onTargetTimeInput() {
     const pMin = Math.floor(pSec / 60);
     const pSecRem = Math.round(pSec % 60);
     preview.textContent = `= ${pMin}:${String(pSecRem).padStart(2,'0')}/km target pace`;
+  }
+  checkGoalAmbition();
+}
+
+// ── Goal ambition checker ─────────────────────────────────────────────────────
+
+function fmtTimeSecs(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = Math.round(secs % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function getAvailableWeeks() {
+  if (answers.raceDate) {
+    const ms = new Date(answers.raceDate + 'T00:00:00Z').getTime() - Date.now();
+    return Math.round(ms / (7 * 24 * 60 * 60 * 1000));
+  }
+  return { '4w':4, '8w':8, '12w':12, '16w':16 }[answers.q7] || null;
+}
+
+// Minimum recommended prep weeks by current fitness × goal distance.
+// Based on standard coaching guidelines.
+const MIN_WEEKS = {
+  none:    { '5k':10, '10k':18, 'half':26, 'marathon':52 },
+  '0to5':  { '5k': 6, '10k':12, 'half':20, 'marathon':40 },
+  '5to10': { '5k': 0, '10k': 6, 'half':12, 'marathon':22 },
+  '10to16':{ '5k': 0, '10k': 0, 'half': 8, 'marathon':16 },
+  '16plus':{ '5k': 0, '10k': 0, 'half': 0, 'marathon':12 },
+};
+
+// Max realistic improvement fraction per week of training.
+// Aggressive but achievable upper bounds.
+const MAX_IMPROVEMENT_PER_WEEK = 0.008; // 0.8% per week
+
+function evaluateGoalAmbition() {
+  const goal     = answers.q1;
+  const fitness  = answers.q2;
+  const goalDistKm = PACE_DIST_KM[goal];
+  if (!goalDistKm) return null; // general fitness — nothing to check
+
+  const weeks = getAvailableWeeks();
+
+  // ── Check 1: minimum weeks for current fitness + goal distance ────────────
+  const minW = MIN_WEEKS[fitness]?.[goal];
+  if (minW && minW > 0) {
+    const goalNames = { '5k':'5K', '10k':'10K', 'half':'half marathon', 'marathon':'marathon' };
+    const fitNames  = { none:'no running base', '0to5':'running up to 5km', '5to10':'running 5–10km', '10to16':'running 10–16km', '16plus':'over 16km runs' };
+    if (weeks && weeks < minW * 0.75) {
+      return {
+        level: 'danger',
+        message: `<strong>⚠️ Timeline too short for your current base</strong>` +
+          `With ${fitNames[fitness] || 'your current fitness'}, a ${goalNames[goal]} typically needs at least ${minW} weeks of preparation — ` +
+          `you have ${weeks}. Rushing this distance with insufficient base significantly raises injury risk. Consider a longer timeline or a shorter race distance.`,
+      };
+    }
+    if (weeks && weeks < minW && !answers.targetTimeSecs) {
+      return {
+        level: 'caution',
+        message: `<strong>⚡ Tight timeline</strong>` +
+          `A ${goalNames[goal]} with ${fitNames[fitness] || 'your fitness level'} usually benefits from ${minW}+ weeks. ` +
+          `${weeks} weeks is achievable but leaves little margin — consistency will be critical.`,
+      };
+    }
+  }
+
+  // ── Check 2: predicted vs target (needs PB) ───────────────────────────────
+  if (!answers.paceTimeSecs || !answers.paceDistance || answers.paceDistance === 'skip') return null;
+  if (!answers.targetTimeSecs) return null;
+
+  const pbDistKm   = PACE_DIST_KM[answers.paceDistance];
+  const predicted  = answers.paceTimeSecs * Math.pow(goalDistKm / pbDistKm, 1.06);
+  const target     = answers.targetTimeSecs;
+  const improvement = (predicted - target) / predicted; // positive = faster target needed
+
+  if (improvement <= 0.02) return null; // target is close to or slower than predicted — fine
+
+  const improvPct  = Math.round(improvement * 100);
+  const goalNames  = { '5k':'5K', '10k':'10K', 'half':'half marathon', 'marathon':'marathon' };
+  const pbDistName = { '5k':'5K', '10k':'10K', 'half':'half marathon', 'marathon':'marathon' }[answers.paceDistance];
+  const predictedStr = fmtTimeSecs(Math.round(predicted));
+  const maxAchievable = weeks ? Math.round(predicted * (1 - MAX_IMPROVEMENT_PER_WEEK * weeks)) : null;
+
+  if (improvement > 0.25) {
+    return {
+      level: 'danger',
+      message: `<strong>⚠️ Very ambitious target</strong>` +
+        `Your ${pbDistName} PB predicts a ${goalNames[goal]} of around <strong>${predictedStr}</strong>. ` +
+        `Your target requires a <strong>${improvPct}% improvement</strong> — this is beyond what structured training alone is likely to deliver` +
+        (weeks ? ` in ${weeks} weeks` : '') + `. Consider an intermediate target or a longer timeline.` +
+        (maxAchievable && maxAchievable > target ? ` A realistic goal for ${weeks} weeks might be closer to ${fmtTimeSecs(maxAchievable)}.` : ''),
+    };
+  }
+  if (improvement > 0.12) {
+    const urgency = (weeks && weeks < 12) ? ` over only ${weeks} weeks` : '';
+    return {
+      level: 'danger',
+      message: `<strong>⚠️ Highly ambitious target</strong>` +
+        `Your ${pbDistName} PB predicts a ${goalNames[goal]} of around <strong>${predictedStr}</strong>. ` +
+        `You're targeting a <strong>${improvPct}% improvement</strong>${urgency} — possible with near-perfect training and no setbacks, but carries a high risk of overreaching. ` +
+        (maxAchievable ? `A more achievable goal${weeks ? ` for ${weeks} weeks` : ''} might be around ${fmtTimeSecs(maxAchievable)}.` : ''),
+    };
+  }
+  if (improvement > 0.06) {
+    return {
+      level: 'caution',
+      message: `<strong>⚡ Challenging but achievable</strong>` +
+        `Your ${pbDistName} PB suggests a predicted ${goalNames[goal]} of around <strong>${predictedStr}</strong>. ` +
+        `Your target needs a <strong>${improvPct}% improvement</strong> — this is doable with ${weeks ? `${weeks} weeks of` : ''} consistent, well-structured training, but you'll need to hit most sessions and stay injury-free.`,
+    };
+  }
+  return null; // improvement 2–6%: sensible stretch goal, no warning
+}
+
+function checkGoalAmbition() {
+  const result = evaluateGoalAmbition();
+  for (const id of ['ambition-warning', 'ambition-warning-q9']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (!result) { el.style.display = 'none'; el.innerHTML = ''; continue; }
+    el.className = `ambition-warning ambition-${result.level}`;
+    el.innerHTML = result.message;
+    el.style.display = 'block';
   }
 }
 
@@ -1589,6 +1720,7 @@ function onRaceDateInput() {
   document.querySelectorAll('#q7 .option-btn').forEach(b => b.classList.remove('selected'));
   preview.textContent = `${weeksUntil} weeks until race day — plan will include a proper taper`;
   nextBtn.disabled = false;
+  checkGoalAmbition();
 }
 
 function selectTimeline(btn, value) {
@@ -1601,6 +1733,7 @@ function selectTimeline(btn, value) {
   btn.classList.add('selected');
   answers.q7 = value;
   document.getElementById('next-q7').disabled = false;
+  checkGoalAmbition();
 }
 
 // ??? SUBMIT SURVEY ? POST to backend ?????????????????????????????????????????
