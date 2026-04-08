@@ -355,21 +355,18 @@ function matchSavedActivityToWorkout(userId, activityId, actDate) {
   ).get(activityId);
   if (alreadyLinked) return;
 
-  // Find an unlinked non-rest workout on the same date, scoped to the user's
-  // most recently created plan so we match to the active plan only.
-  const latestPlan = db.prepare(
-    'SELECT id FROM plans WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
-  ).get(userId);
-
+  // Find an unlinked non-rest workout on the same date across ALL of the user's
+  // plans, preferring the most recently created plan when multiple match.
   const workout = db.prepare(`
     SELECT pw.id FROM plan_workouts pw
+    LEFT JOIN plans p ON pw.plan_id = p.id
     WHERE pw.user_id = ?
       AND pw.scheduled_date = ?
       AND pw.workout_type NOT IN ('rest','race')
       AND pw.linked_activity_id IS NULL
-      ${latestPlan ? 'AND pw.plan_id = ?' : ''}
+    ORDER BY p.created_at DESC
     LIMIT 1
-  `).get(...(latestPlan ? [userId, actDate, latestPlan.id] : [userId, actDate]));
+  `).get(userId, actDate);
 
   if (workout) {
     db.prepare(`

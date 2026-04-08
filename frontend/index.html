@@ -6,6 +6,8 @@
 <title>Correr — Your AI Running Companion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--ink:#0d0d0d;--paper:#f5f2ec;--accent:#e8390e;--accent2:#2a5cff;--muted:#8a8680;--card:#ffffff;--border:#e0dbd3;--green:#1a7a4a;--green-light:#e8f5ee}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -510,14 +512,14 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <nav>
   <div class="nav-logo" onclick="goHome()" style="cursor:pointer">Correr<span>.</span></div>
   <div class="nav-links">
-    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showSection('plans');return false">Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Custom Plan</a>
+    <a href="#" onclick="showSection('features');return false">Features</a><a href="#" onclick="showMyPlans();return false">My Plans</a><a href="#" onclick="showSection('devices');return false">Devices</a><a href="#" onclick="showCustomPlan();return false">Build Custom Plan</a>
   </div>
   <div class="nav-status">
     <div class="status-chip" id="strava-status-chip" onclick="handleStravaChipClick()">
       <span class="dot"></span> Strava
     </div>
     <a href="#" id="nav-premium" onclick="showPremium();return false" class="nav-premium-btn">Go Premium</a>
-    <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlans();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">My Plans</a>
+    <a href="#" id="nav-my-plan" class="nav-links btn-nav" onclick="showMyPlans();return false" style="display:none;text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">AI Smart Plan</a>
     <a href="#" id="nav-get-started" class="nav-links btn-nav" onclick="startSurvey();return false" style="text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase">AI Smart Plan</a>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
@@ -526,11 +528,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 </nav>
 <div id="mobile-nav" class="mobile-nav">
   <a href="#" onclick="showSection('features');closeMobileNav();return false">Features</a>
-  <a href="#" onclick="showSection('plans');closeMobileNav();return false">Plans</a>
+  <a href="#" onclick="showMyPlans();closeMobileNav();return false">My Plans</a>
   <a href="#" onclick="showSection('devices');closeMobileNav();return false">Devices</a>
-  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Custom Plan</a>
+  <a href="#" onclick="showCustomPlan();closeMobileNav();return false">Build Custom Plan</a>
   <a href="#" onclick="showPremium();closeMobileNav();return false" class="mobile-nav-premium">Go Premium</a>
-  <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlans();closeMobileNav();return false">My Plans</a>
+  <a href="#" id="mobile-nav-my-plan" style="display:none" onclick="showMyPlans();closeMobileNav();return false">AI Smart Plan</a>
   <a href="#" id="mobile-nav-get-started" onclick="startSurvey();closeMobileNav();return false">AI Smart Plan</a>
 </div>
 
@@ -644,9 +646,9 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
 <!-- SURVEY -->
 <section id="survey-section">
   <div class="section-header">
-    <span class="section-kicker">Your personalised plan</span>
-    <div class="section-title">Let's Build Your Plan</div>
-    <p class="section-sub">Answer a few questions about your goals and fitness — we'll generate a structured programme and sync it to your devices.</p>
+    <span class="section-kicker">AI Smart Plan</span>
+    <div class="section-title">Let's Build Your AI Smart Plan</div>
+    <p class="section-sub">Answer a few questions about your goals and fitness — we'll generate a structured AI Smart Plan and sync it to your devices.</p>
   </div>
   <div class="survey-progress">
     <div class="progress-meta"><span class="progress-label">Progress</span><span class="progress-count" id="progress-count">1 of 7</span></div>
@@ -880,6 +882,12 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:3rem 2.5rem 2rem
   <div class="workouts-section">
     <div class="workouts-title">Full Schedule</div>
     <div id="workout-list"></div>
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+      <button class="btn-secondary" onclick="exportPlanPDF()" style="font-size:.82rem;padding:.6rem 1.4rem;display:flex;align-items:center;gap:.5rem">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Plan PDF
+      </button>
+    </div>
   </div>
 </section>
 
@@ -2135,6 +2143,147 @@ function toggleWeekExpand(weekNum) {
   renderWorkoutList(planWorkouts);
 }
 
+// ── Export Plan PDF ───────────────────────────────────────────────────────────
+function exportPlanPDF() {
+  if (!planWorkouts?.length) { showToast('No plan to export', 'error'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const TYPE_COLORS = {
+    easy:        [232, 244, 248],
+    long:        [230, 240, 255],
+    tempo:       [255, 243, 224],
+    intervals:   [255, 232, 230],
+    fartlek:     [243, 232, 255],
+    hills:       [232, 248, 232],
+    progression: [255, 248, 225],
+    strides:     [255, 240, 245],
+    cruise:      [240, 248, 255],
+    shakeout:    [245, 255, 245],
+    race:        [255, 220, 210],
+    rest:        [248, 248, 248],
+  };
+
+  // Group workouts by week
+  const grouped = {};
+  for (const w of planWorkouts) {
+    if (!grouped[w.week_number]) grouped[w.week_number] = {};
+    grouped[w.week_number][w.day_of_week] = w;
+  }
+  const weekNums = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+  // Plan title & date range
+  const planName = document.getElementById('plan-goal-title')?.textContent || 'Training Plan';
+  const firstDate = planWorkouts.find(w => w.scheduled_date)?.scheduled_date;
+  const lastDate  = [...planWorkouts].reverse().find(w => w.scheduled_date)?.scheduled_date;
+  const fmtDate = d => d ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(13, 13, 13);
+  doc.text(planName, 14, 18);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 110);
+  const subtitle = firstDate ? `${fmtDate(firstDate)} – ${fmtDate(lastDate)}  ·  ${weekNums.length} weeks` : `${weekNums.length} weeks`;
+  doc.text(subtitle, 14, 25);
+
+  // Accent line
+  doc.setDrawColor(232, 57, 14);
+  doc.setLineWidth(0.8);
+  doc.line(14, 28, 283, 28);
+
+  // Build table
+  const head = [['Week', 'Phase', ...DAYS]];
+  const body = weekNums.map(wk => {
+    const phase = (() => {
+      const pct = wk / weekNums.length;
+      if (pct <= 0.3) return 'Base';
+      if (pct <= 0.6) return 'Build';
+      if (pct <= 0.85) return 'Peak';
+      return 'Taper';
+    })();
+    const isRaceWeek = planRaceDate && wk === totalPlanWeeks;
+    return [
+      `Week ${wk}${isRaceWeek ? '\n🏁 Race' : ''}`,
+      phase,
+      ...DAYS.map(day => {
+        const w = grouped[wk]?.[day];
+        if (!w || w.workout_type === 'rest') return '—';
+        const km = w.target_distance_km ? `${Math.round(w.target_distance_km)}km` : '';
+        return `${w.workout_type.toUpperCase()}\n${km}`;
+      }),
+    ];
+  });
+
+  doc.autoTable({
+    startY: 32,
+    head,
+    body,
+    styles: {
+      font: 'helvetica',
+      fontSize: 7.5,
+      cellPadding: { top: 2.5, right: 2, bottom: 2.5, left: 2 },
+      valign: 'middle',
+      overflow: 'linebreak',
+      lineColor: [210, 205, 198],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [13, 13, 13],
+      textColor: [245, 242, 236],
+      fontStyle: 'bold',
+      fontSize: 7.5,
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 16, halign: 'center', textColor: [120, 120, 110] },
+      2: { cellWidth: 34 }, 3: { cellWidth: 34 }, 4: { cellWidth: 34 },
+      5: { cellWidth: 34 }, 6: { cellWidth: 34 }, 7: { cellWidth: 34 }, 8: { cellWidth: 34 },
+    },
+    didParseCell(data) {
+      if (data.section === 'body' && data.column.index >= 2) {
+        const wk = weekNums[data.row.index];
+        const day = DAYS[data.column.index - 2];
+        const w = grouped[wk]?.[day];
+        const type = w?.workout_type || 'rest';
+        const rgb = TYPE_COLORS[type] || TYPE_COLORS.rest;
+        data.cell.styles.fillColor = rgb;
+        if (type !== 'rest' && w) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = [13, 13, 13];
+        } else {
+          data.cell.styles.textColor = [180, 175, 168];
+        }
+        data.cell.styles.halign = 'center';
+      }
+    },
+    alternateRowStyles: { fillColor: false },
+    margin: { left: 14, right: 14 },
+    tableLineColor: [200, 195, 188],
+    tableLineWidth: 0.3,
+  });
+
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(160, 155, 148);
+    doc.text(`Correr — ${planName}`, 14, doc.internal.pageSize.height - 6);
+    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 6, { align: 'right' });
+  }
+
+  const safeName = planName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  doc.save(`${safeName}_plan.pdf`);
+}
+
 // ??? DRAG AND DROP ??????????????????????????????????????????????????????????
 let draggedWorkoutId = null;
 
@@ -3280,8 +3429,8 @@ function setNavHasPlan(hasPlan) {
   document.getElementById('mobile-nav-my-plan').style.display = 'none';
 
   if (hasPlan) {
-    if (navBtn)     { navBtn.textContent = 'My Plans';    navBtn.setAttribute('onclick',       'showMyPlans();return false'); }
-    if (mobileNavBtn) { mobileNavBtn.textContent = 'My Plans'; mobileNavBtn.setAttribute('onclick', 'showMyPlans();closeMobileNav();return false'); }
+    if (navBtn)     { navBtn.textContent = 'AI Smart Plan'; navBtn.setAttribute('onclick',       'showMyPlans();return false'); }
+    if (mobileNavBtn) { mobileNavBtn.textContent = 'AI Smart Plan'; mobileNavBtn.setAttribute('onclick', 'showMyPlans();closeMobileNav();return false'); }
     if (heroCta)    { heroCta.textContent = 'My Plans';   heroCta.setAttribute('onclick',      'showMyPlans()'); }
   } else {
     if (navBtn)     { navBtn.textContent = 'AI Smart Plan'; navBtn.setAttribute('onclick',     'startSurvey();return false'); }
