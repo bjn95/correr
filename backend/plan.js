@@ -48,6 +48,25 @@ const PACE_LEVEL = {
 
 function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
+// Count how many days in `selected` are adjacent (±1 in week cycle) to `day`.
+// Uses wrap-around so Sun and Mon count as adjacent.
+function countAdjacentTo(day, selected, allDays) {
+  const n   = allDays.length;
+  const idx = allDays.indexOf(day);
+  let count = 0;
+  if (selected.has(allDays[(idx - 1 + n) % n])) count++;
+  if (selected.has(allDays[(idx + 1)     % n])) count++;
+  return count;
+}
+
+// Intensity rank used to order consecutive running days (higher = harder).
+// Long run is pinned (rank 99) so it never gets swapped out.
+const INTENSITY_RANK = {
+  intervals: 6, tempo: 5, hills: 5, cruise: 4,
+  progression: 3, fartlek: 3, strides: 2, easy: 1,
+  long: 99, shakeout: 0,
+};
+
 function weekdayName(isoDate) {
   return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(isoDate + 'T00:00:00Z').getUTCDay()];
 }
@@ -263,14 +282,29 @@ function buildWeekSessions({ weekNum, totalWeeks, days, level, longKm, targetPac
 
     if (pool.length <= need) return sorted;  // pool exhausted — use all
 
-    // Rotate the starting position through the pool each week so the plan
-    // uses different days in different weeks (all within user's available days).
-    // Step by (need) each week to ensure minimal day-overlap between consecutive weeks.
+    // Greedily pick days that minimise adjacencies to already-selected days.
+    // Use weekly rotation (step-based) as a tiebreaker so day variety is
+    // preserved across weeks even when gap preference dominates.
     const step     = Math.max(1, need);
     const startIdx = ((weekNum - 1) * step) % pool.length;
     const selected = new Set([anchor]);
+
+    // Build a rotation-ordered version of the pool as tiebreaker priority
+    const rotationOrder = pool.map((_, i) => pool[(startIdx + i) % pool.length]);
+
     for (let i = 0; i < need; i++) {
-      selected.add(pool[(startIdx + i) % pool.length]);
+      const remaining = rotationOrder.filter(d => !selected.has(d));
+      if (!remaining.length) break;
+
+      // Sort by (adjacency count ASC, rotation order ASC) — prefer gaps first
+      remaining.sort((a, b) => {
+        const adjA = countAdjacentTo(a, selected, ALL_DAYS);
+        const adjB = countAdjacentTo(b, selected, ALL_DAYS);
+        if (adjA !== adjB) return adjA - adjB;
+        return rotationOrder.indexOf(a) - rotationOrder.indexOf(b);
+      });
+
+      selected.add(remaining[0]);
     }
 
     return sorted.filter(d => selected.has(d));
@@ -331,6 +365,33 @@ function buildWeekSessions({ weekNum, totalWeeks, days, level, longKm, targetPac
       paceMinKm:   paceMap[type],
       date:        addDays(weekStart, dayOff),
     });
+  }
+
+  // ── Intensity ordering for consecutive days ─────────────────────────────
+  // When two running days are back-to-back, ensure the harder session comes
+  // first so the easier day acts as active recovery.  Never move the long run.
+  const n = ALL_DAYS.length;
+  for (let i = 0; i < sessions.length - 1; i++) {
+    const a = sessions[i];
+    const b = sessions[i + 1];
+    const idxA = ALL_DAYS.indexOf(a.dayOfWeek);
+    const idxB = ALL_DAYS.indexOf(b.dayOfWeek);
+    const consecutive = (idxB - idxA + n) % n === 1;
+    if (!consecutive) continue;
+    if (a.type === 'long' || b.type === 'long') continue;  // never displace long run
+
+    const rankA = INTENSITY_RANK[a.type] ?? 1;
+    const rankB = INTENSITY_RANK[b.type] ?? 1;
+    if (rankB <= rankA) continue;  // already in correct order (harder ≥ easier)
+
+    // Swap types between the two sessions, rebuild everything that depends on type
+    [a.type, b.type] = [b.type, a.type];
+    for (const s of [a, b]) {
+      s.name        = sessionName(s.type, distMap[s.type], goal);
+      s.description = buildDescription(s.type, phaseName, distMap[s.type], paceMap[s.type], goal, level);
+      s.distanceKm  = distMap[s.type];
+      s.paceMinKm   = paceMap[s.type];
+    }
   }
 
   return sessions;
