@@ -320,7 +320,7 @@ function upsertActivity(userId, source, a) {
     String(a.id),
     a.name,
     a.sport_type,
-    a.start_date,
+    a.start_date_local || a.start_date,  // prefer local date so timezone doesn't shift the day
     a.distance,
     a.moving_time,
     a.elapsed_time,
@@ -334,8 +334,10 @@ function upsertActivity(userId, source, a) {
 }
 
 function matchActivityToPlan(userId, activity) {
-  // Called per-webhook: match one fresh Strava activity to its plan workout
-  const actDate = activity.start_date?.slice(0, 10);
+  // Called per-webhook: match one fresh Strava activity to its plan workout.
+  // Use start_date_local (athlete's local time) so a 10pm run on Monday isn't
+  // treated as Tuesday because Strava stores UTC in start_date.
+  const actDate = (activity.start_date_local || activity.start_date)?.slice(0, 10);
   if (!actDate) return;
 
   const savedActivity = db.prepare(
@@ -353,13 +355,21 @@ function matchSavedActivityToWorkout(userId, activityId, actDate) {
   ).get(activityId);
   if (alreadyLinked) return;
 
-  // Find an unlinked non-rest workout on the same date
+  // Find an unlinked non-rest workout on the same date, scoped to the user's
+  // most recently created plan so we match to the active plan only.
+  const latestPlan = db.prepare(
+    'SELECT id FROM plans WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+  ).get(userId);
+
   const workout = db.prepare(`
-    SELECT id FROM plan_workouts
-    WHERE user_id = ? AND scheduled_date = ? AND workout_type != 'rest'
-      AND linked_activity_id IS NULL
+    SELECT pw.id FROM plan_workouts pw
+    WHERE pw.user_id = ?
+      AND pw.scheduled_date = ?
+      AND pw.workout_type NOT IN ('rest','race')
+      AND pw.linked_activity_id IS NULL
+      ${latestPlan ? 'AND pw.plan_id = ?' : ''}
     LIMIT 1
-  `).get(userId, actDate);
+  `).get(...(latestPlan ? [userId, actDate, latestPlan.id] : [userId, actDate]));
 
   if (workout) {
     db.prepare(`
@@ -372,6 +382,8 @@ function matchSavedActivityToWorkout(userId, activityId, actDate) {
 // Bulk-match all synced run activities to plan workouts for a user.
 // Safe to call repeatedly — skips already-linked activities and workouts.
 function matchAllActivitiesToPlan(userId) {
+  // start_date now stores start_date_local (set in upsertActivity), so slicing
+  // the first 10 chars gives the correct local calendar date.
   const activities = db.prepare(`
     SELECT a.id, substr(a.start_date, 1, 10) AS act_date
     FROM activities a

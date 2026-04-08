@@ -98,6 +98,10 @@ app.post('/api/plan', (req, res) => {
 
   const plan = buildOrUpdatePlan(userId, { goal, longestRun, days, timeline, preferredDays, longRunDay, paceDistance, paceTimeSecs, raceDate, planName }, aiPlan.id);
 
+  // Re-link existing Strava activities to the freshly generated workouts
+  const hasStrava = db.prepare('SELECT strava_id FROM users WHERE id = ?').get(userId)?.strava_id;
+  if (hasStrava) matchAllActivitiesToPlan(userId);
+
   res.json({ userId, planId: aiPlan.id, ...plan });
 });
 
@@ -442,15 +446,21 @@ app.patch('/api/plan/start-date', (req, res) => {
   const userId = req.body.userId || req.session.correrUserId;
   if (!userId) return res.status(401).json({ error: 'userId required' });
 
-  const { startDate } = req.body;
+  const { startDate, planId } = req.body;
   if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
     return res.status(400).json({ error: 'Invalid date' });
   }
 
+  // Resolve which plan to shift — use provided planId or fall back to most recent
+  const resolvedPlanId = planId || db.prepare(
+    'SELECT id FROM plans WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+  ).get(userId)?.id;
+  if (!resolvedPlanId) return res.status(404).json({ error: 'No plan found' });
+
   const first = db.prepare(
-    'SELECT scheduled_date FROM plan_workouts WHERE user_id = ? AND scheduled_date IS NOT NULL ORDER BY scheduled_date ASC LIMIT 1'
-  ).get(userId);
-  if (!first) return res.status(404).json({ error: 'No plan found' });
+    'SELECT scheduled_date FROM plan_workouts WHERE plan_id = ? AND scheduled_date IS NOT NULL ORDER BY scheduled_date ASC LIMIT 1'
+  ).get(resolvedPlanId);
+  if (!first) return res.status(404).json({ error: 'No workouts found' });
 
   const offsetDays = Math.round(
     (new Date(startDate + 'T00:00:00Z') - new Date(first.scheduled_date + 'T00:00:00Z'))
@@ -459,8 +469,8 @@ app.patch('/api/plan/start-date', (req, res) => {
   if (offsetDays === 0) return res.json({ startDate });
 
   const workouts = db.prepare(
-    'SELECT id, scheduled_date FROM plan_workouts WHERE user_id = ? AND scheduled_date IS NOT NULL'
-  ).all(userId);
+    'SELECT id, scheduled_date FROM plan_workouts WHERE plan_id = ? AND scheduled_date IS NOT NULL'
+  ).all(resolvedPlanId);
 
   const update = db.prepare('UPDATE plan_workouts SET scheduled_date = ? WHERE id = ?');
   db.transaction(() => {

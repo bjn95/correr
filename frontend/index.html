@@ -3207,7 +3207,7 @@ async function applyStartDate() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ userId, startDate: newDate }),
+      body: JSON.stringify({ userId, startDate: newDate, planId: activePlanId }),
     });
     if (!res.ok) throw new Error(await res.text());
     showToast('Start date updated', 'success');
